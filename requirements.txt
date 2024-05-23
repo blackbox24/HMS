@@ -1,0 +1,8 @@
+django
+djangorestframework
+drf_yasg
+psycopg2-binary
+djangorestframework-simplejwt==5.3.1
+PyJWT==2.8.0
+flower
+celery[redis]

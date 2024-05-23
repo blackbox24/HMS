@@ -70,3 +70,30 @@ Entity-Relationship Diagram (ERD)
 
 An entity relationship diagram is a graphical representation of the entities and relationships in the database structure. Its purpose is to provide a conceptually simplistic picture to the complex design of the database itself. Data is collected and stored for each entity while relationships describe the associations between the data. The ERD of the Hospital Network begins with the main table Hospital, then Department, where it branches off into Doctor and Staff, before leading into Patient through connections of Room and Appointment. The Patient Table makes additional connections by branching into Invoice, Pharmacy, and Prescription.
 ![DataBase Schema](https://miro.medium.com/v2/resize:fit:828/format:webp/1*-CFps3Yl_t-HQFlrOoTtGQ.png)
+
+
+## Creating Database with postgres
+
+1. Type `psql --username <username>` in your terminal to create a user in postgres. Where <username> should a or the username. Try psql -U postgres and enter your password in your terminal
+
+2. Type the followinfg commands in the psql console.
+```sql
+CREATE DATABASE hms;
+CREATE USER nelso WITH PASSWORD 'nelso';
+ALTER ROLE nelso SET client_encoding TO 'utf8';
+ALTER ROLE nelso SET default_transaction_isolation TO 'read committed';
+ALTER ROLE nelso SET timezone TO 'UTC';
+GRANT ALL PRIVILEGES ON DATABASE hms TO nelso;
+
+ALTER DATABASE database OWNER TO nelso;
+GRANT ALL ON SCHEMA public TO nelso;
+GRANT ALL ON SCHEMA public TO public;
+```
+
+## BUilding the System
+1. Make migrations `python manage.py migrate`
+
+2. Create a super user `python manage.py createsuperuser`
+
+5. Create Auth app 
+
