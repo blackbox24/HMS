@@ -89,11 +89,3 @@ ALTER DATABASE hms OWNER TO nelso;
 GRANT ALL ON SCHEMA public TO nelso;
 GRANT ALL ON SCHEMA public TO public;
 ```
-
-## BUilding the System
-1. Make migrations `python manage.py migrate`
-
-2. Create a super user `python manage.py createsuperuser`
-
-5. Create Auth app 
-
