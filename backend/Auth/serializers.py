@@ -6,7 +6,7 @@ from Staff.models import Staff
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserData
-        fields = ['id', 'first_name', 'last_name', 'email', 'staff_id']
+        fields = ['id', 'first_name', 'last_name', 'email', 'staff_id',"verification_token"]
 
 class RegistrationSerializer(serializers.ModelSerializer):
     staff_id = serializers.PrimaryKeyRelatedField(queryset=Staff.objects.all())

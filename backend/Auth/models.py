@@ -53,17 +53,19 @@ class UserData(AbstractUser):
     last_name = models.CharField(max_length=100)
     email = models.EmailField(max_length=100, unique=True)
     password = models.CharField(max_length=255)
+    is_verified = models.BooleanField(default=False)
+    verification_token = models.CharField(max_length=100, blank=True, null=True)
     
     objects = UserManager()
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name','last_name']
 
-    def generate_verification_token(self):
-        token = get_random_string(length=32)
-        self.verification_token = token
-        self.save()
-        return token
+    # def generate_verification_token(self):
+    #     token = get_random_string(length=32)
+    #     self.verification_token = token
+    #     self.save()
+    #     return token
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"

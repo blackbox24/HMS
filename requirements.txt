@@ -1,0 +1,7 @@
+django
+celery[redis]
+flower
+djangorestframework
+djangorestframework-simplejwt
+drf-yasg
+psycopg2

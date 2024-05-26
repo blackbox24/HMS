@@ -22,7 +22,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/',include('Auth.urls')),
     path('api/hospital/',include('Hospital.urls')),
-    path('api/departmenet/',include('Department.urls')),
+    path('api/department/',include('Department.urls')),
     path('api/doctor/',include('Doctor.urls')),
     path('api/staff/',include('Staff.urls')),
     path('api/patient/',include('Patient.urls')),

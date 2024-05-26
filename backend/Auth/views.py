@@ -11,6 +11,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import UserData
 from Staff.models import Staff
 from tasks.sendmail import send_verification_email
+from django.utils.crypto import get_random_string
 
 class RegistrationView(generics.CreateAPIView):
     serializer_class = RegistrationSerializer
@@ -20,6 +21,7 @@ class RegistrationView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         first_name = serializer.validated_data['first_name']
         last_name = serializer.validated_data['last_name']
+        token = get_random_string(length=32)
         
         
         user = UserData.objects.create_user(
@@ -27,8 +29,10 @@ class RegistrationView(generics.CreateAPIView):
             last_name=last_name,
             email=serializer.validated_data['email'],
             password=serializer.validated_data['password'],
-            staff_id=serializer.validated_data['staff_id']
+            staff_id=serializer.validated_data['staff_id'],
+            verification_token = token
         )
+        
         send_verification_email.delay(user.id)
 
         return Response({
@@ -58,9 +62,9 @@ class VerifyEmailView(View):
             user = UserData.objects.get(verification_token=token)
             user.is_verified = True
             user.save()
-            return redirect('/verified/')
+            return redirect('../verified/')
         except UserData.DoesNotExist:
-            return redirect('/invalid-token/')
+            return redirect('../invalid-token/')
         
 class PasswordChangeAPIView(generics.UpdateAPIView):
     serializer_class = PasswordResetSerializer

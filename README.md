@@ -89,3 +89,66 @@ ALTER DATABASE hms OWNER TO nelso;
 GRANT ALL ON SCHEMA public TO nelso;
 GRANT ALL ON SCHEMA public TO public;
 ```
+
+
+### Monitoring Tasks
+We will be using celery to distribute the task to brokers such as redis and flower to monitor the tasks
+
+* Install celery by using `pip install celery[redis]` in the terminal
+
+* Add  'celery' to INSTALLED_APPS in settings.py of your project
+
+* Create a celery.py file in the directory which settings.py can be found
+
+* Paste the following code in celery.py file
+    ```python
+    from __future__ import absolute_import, unicode_literals
+    import os
+    from celery import Celery
+    from django.conf import settings
+
+    # Set the default Django settings module for the 'celery' program.
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
+
+    app = Celery('backend')  # Replace 'your_project' with your project's name.
+
+    # Configure Celery using settings from Django settings.py.
+    app.config_from_object('django.conf:settings', namespace='CELERY')
+
+    # Load tasks from all registered Django app configs.
+    app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
+
+    @app.task(bind=True)
+    def debug_task(self):
+        print(f"Request: {self.request!r}")
+
+    ``` 
+Replace the text 'backend' with the name of your project
+
+* Paste the following code in the __init__.py file which is in the same directory as settigs.py
+    ```python
+    from .celery import app as celery_app
+
+    __all__ = ("celery_app",)
+    ```
+* Download redis and click on redis.cli to start redis
+
+* Add these lines of code in your settings.py
+    ```python
+    # set the celery broker url 
+    CELERY_BROKER_URL = 'redis://localhost:6379/0'
+    
+    # set the celery result backend 
+    CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+    
+    # set the celery timezone 
+    CELERY_TIMEZONE = 'UTC'
+    ```
+
+* Run the django server `python manage.py runserver` in your terminal and also in your root directory of the project
+
+* Run `celery -A backend.celery worker --pool=solo -l info` in your terminal and also in the root directory of the project 
+
+* Install flower by using `pip install flower`
+
+* Run `celery -A backend flower  worker --loglevel=info` in your terminal and also in the root directory of the project 

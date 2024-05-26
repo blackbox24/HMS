@@ -5,10 +5,12 @@ from django.conf import settings
 from celery import shared_task
 from Auth.models import UserData
 
+
 @shared_task
 def send_verification_email(user_id):
     user = UserData.objects.get(id=user_id)
-    token = user.generate_verification_token()
+    token = user.verification_token
+
 
     subject = 'Verify Your Email'
     context = {
