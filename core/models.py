@@ -11,6 +11,7 @@ class User(AbstractUser):
     department = models.CharField(max_length=100, blank=True)
     phone = models.CharField(max_length=20, blank=True)
     active_session_key = models.CharField(max_length=40, blank=True)
+    must_change_password = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["first_name", "last_name"]
@@ -44,6 +45,34 @@ class Role(Group):
         proxy = True
         verbose_name = "Role"
         verbose_name_plural = "Roles"
+
+
+class PasswordResetRequest(models.Model):
+    """LAN-friendly password reset: staff request a reset, an admin
+    generates a one-time temporary password and hands it over in person."""
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Pending"
+        COMPLETED = "COMPLETED", "Completed"
+        CANCELLED = "CANCELLED", "Cancelled"
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="password_reset_requests")
+    requested_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    handled_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="handled_reset_requests",
+    )
+    handled_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-requested_at"]
+
+    def __str__(self):
+        return f"{self.user.username} — {self.get_status_display()} ({self.requested_at:%Y-%m-%d %H:%M})"
 
 
 class AuditLog(models.Model):

@@ -32,6 +32,33 @@ class SingleSessionMiddleware:
         return self.get_response(request)
 
 
+FORCE_RESET_EXEMPT_PREFIXES = (
+    "/password-change/",
+    "/accounts/logout/",
+    "/admin/",
+    "/static/",
+)
+
+
+class ForcePasswordChangeMiddleware:
+    """Users flagged must_change_password (e.g. temp password issued by an
+    admin) are redirected to the change-password page until they set a new one."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        user = getattr(request, "user", None)
+        if (
+            user is not None
+            and user.is_authenticated
+            and user.must_change_password
+            and not request.path.startswith(FORCE_RESET_EXEMPT_PREFIXES)
+        ):
+            return redirect("password_change")
+        return self.get_response(request)
+
+
 class AccessLogMiddleware:
     """Writes one line per request to logs/access.log via the 'hms.access' logger."""
 

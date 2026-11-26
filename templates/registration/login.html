@@ -25,6 +25,7 @@
     <label for="id_password">Password</label>
     {{ form.password }}
     <button type="submit">Sign in</button>
+    <a href="{% url 'password_reset_request' %}" style="display:block;text-align:center;margin-top:.9rem;color:#2563eb;text-decoration:none;font-size:.88rem">Forgot password?</a>
   </form>
 </body>
 </html>

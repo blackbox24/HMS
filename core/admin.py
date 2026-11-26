@@ -7,7 +7,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
 from guardian.admin import GuardedModelAdminMixin
 
-from .models import AuditLog, Role, User
+from .models import AuditLog, PasswordResetRequest, Role, User
 
 # Replace the default flat Group admin — roles ARE groups (same table).
 with contextlib.suppress(NotRegistered):
@@ -44,6 +44,13 @@ class UserAdmin(BaseUserAdmin):
 class RoleAdmin(GuardedModelAdminMixin, GroupAdmin):  # type: ignore[misc]
     """Roles = groups. Assign model perms via 'Permissions' and per-object
     perms via the guardian 'Object permissions' section."""
+
+
+@admin.register(PasswordResetRequest)
+class PasswordResetRequestAdmin(admin.ModelAdmin):
+    list_display = ("user", "requested_at", "status", "handled_by", "handled_at")
+    list_filter = ("status",)
+    readonly_fields = ("requested_at", "handled_at")
 
 
 @admin.register(AuditLog)

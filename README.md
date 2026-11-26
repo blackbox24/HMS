@@ -55,6 +55,7 @@ HMS replaces the paper trail with a single system where:
 | Billing | Charge ledger, tariffs, invoices, payments, receipts (printable) |
 | Reports | Census, revenue, occupancy dashboards |
 | Security | Login (username or email), axes lockout after 3 failures, one active session per user, role + object permissions, full audit log |
+| Accounts | Change password, forgot-password via admin-issued temporary passwords, forced password change on first login |
 
 ### Non-functional requirements
 
@@ -64,6 +65,21 @@ HMS replaces the paper trail with a single system where:
 - **Usability**: keyboard-friendly forms, print-first templates (invoices, wristbands, lab reports), HTMX partial updates without page reloads.
 - **Maintainability**: strict lint (ruff), type checking (mypy + django-stubs), pytest suite.
 - **Security**: session auth, per-role permissions, guardian object-level ACLs, brute-force protection.
+
+### Accounts & password resets (LAN workflow)
+
+There is no email server on the LAN, so password recovery is admin-mediated:
+
+1. Staff click **Forgot password?** on the login page and enter their username.
+2. This creates a pending `PasswordResetRequest` (duplicates within 5 minutes are ignored).
+3. An admin/staff member opens **Password Resets** in the navbar, clicks
+   **Issue temp password**, and receives a one-time temporary password to hand
+   over in person.
+4. The staff member logs in with the temp password and is forced to set a new
+   password before accessing anything else (`must_change_password` flag).
+
+Users can also change their own password anytime via **Change password** in the
+navbar.
 
 ## 3. Tech Stack
 

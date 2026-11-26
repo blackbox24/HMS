@@ -52,9 +52,11 @@
     <nav>
       <a href="{% url 'dashboard' %}">Dashboard</a>
       <a href="{% url 'patient_list' %}">Patients</a>
+      {% if user.is_staff %}<a href="{% url 'password_reset_requests' %}">Password Resets</a>{% endif %}
     </nav>
     <div class="spacer"></div>
     <span class="user">{{ user.get_full_name|default:user.username }} · {{ user.primary_role_name }}</span>
+    <a href="{% url 'password_change' %}" style="color:#cbd5e1;text-decoration:none;font-size:.85rem;margin-right:.8rem">Change password</a>
     <form method="post" action="{% url 'logout' %}" style="margin:0">
       {% csrf_token %}
       <button class="btn secondary small" type="submit">Logout</button>
