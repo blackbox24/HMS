@@ -1,52 +1,176 @@
-{% extends 'base.html' %}
-{% block title %}Register Patient — HMS{% endblock %}
+{% extends 'base_app.html' %}
+{% block title %}Register patient{% endblock %}
 {% block content %}
-<h1>Register Patient</h1>
-<form method="post" class="card" style="max-width:900px">
-  {% csrf_token %}
-  <h2>Identity</h2>
-  <div class="grid cols-3">
-    <div><label>First name *</label><input name="first_name" required></div>
-    <div><label>Middle name</label><input name="middle_name"></div>
-    <div><label>Last name *</label><input name="last_name" required></div>
-  </div>
-  <div class="grid cols-3">
-    <div><label>Date of birth *</label><input type="date" name="date_of_birth" required></div>
-    <div><label>Gender *</label>
-      <select name="gender" required>
-        <option value="">—</option>
-        <option value="M">Male</option><option value="F">Female</option><option value="O">Other</option>
-      </select>
+<div class="page registration-page">
+  <h1 class="page-title">Register patient</h1>
+  <p class="page-lead">An MRN is generated automatically on save.</p>
+
+  <form method="post" id="patient-registration-form" novalidate>
+    {% csrf_token %}
+    <ol class="registration-progress" aria-label="Registration progress">
+      <li class="is-current" data-step-indicator="1"><span>1</span><strong>Basic information</strong></li>
+      <li data-step-indicator="2"><span>2</span><strong>Contact</strong></li>
+      <li data-step-indicator="3"><span>3</span><strong>Identity & insurance</strong></li>
+      <li data-step-indicator="4"><span>4</span><strong>Review</strong></li>
+    </ol>
+
+    <section class="panel registration-step" data-registration-step="1" aria-labelledby="basic-info-heading">
+      <div class="panel-heading registration-panel-heading">
+        <div><span class="panel-kicker">Step 1 of 4</span><h2 id="basic-info-heading">Basic information</h2></div>
+      </div>
+      <div class="registration-fields">
+        <div class="form-grid">
+          <div class="field"><label class="label" for="first_name">First name <span class="required-mark">*</span></label><input class="input" id="first_name" name="first_name" value="{{ form_data.first_name|default:'' }}" autocomplete="given-name" required></div>
+          <div class="field"><label class="label" for="middle_name">Middle name</label><input class="input" id="middle_name" name="middle_name" value="{{ form_data.middle_name|default:'' }}" autocomplete="additional-name"></div>
+          <div class="field"><label class="label" for="last_name">Last name <span class="required-mark">*</span></label><input class="input" id="last_name" name="last_name" value="{{ form_data.last_name|default:'' }}" autocomplete="family-name" required></div>
+          <div class="field"><label class="label" for="previous_name">Previous name</label><input class="input" id="previous_name" name="previous_name" value="{{ form_data.previous_name|default:'' }}"></div>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label class="label" for="date_of_birth">Date of birth <span class="required-mark">*</span></label><input class="input" id="date_of_birth" type="date" name="date_of_birth" value="{{ form_data.date_of_birth|default:'' }}" autocomplete="bday" required></div>
+          <div class="field"><label class="label" for="gender">Gender <span class="required-mark">*</span></label>
+            <select class="input" id="gender" name="gender" required>
+              <option value="">Select gender</option>
+              <option value="M" {% if form_data.gender == "M" %}selected{% endif %}>Male</option>
+              <option value="F" {% if form_data.gender == "F" %}selected{% endif %}>Female</option>
+              <option value="O" {% if form_data.gender == "O" %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+          <div class="field"><label class="label" for="blood_group">Blood group</label>
+            <select class="input" id="blood_group" name="blood_group">
+              {% for v,l in patient_blood_groups %}<option value="{{v}}" {% if form_data.blood_group == v %}selected{% elif not form_data and v == "U" %}selected{% endif %}>{{l}}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel registration-step" data-registration-step="2" aria-labelledby="contact-heading" hidden>
+      <div class="panel-heading registration-panel-heading">
+        <div><span class="panel-kicker">Step 2 of 4</span><h2 id="contact-heading">Contact information</h2></div>
+      </div>
+      <div class="registration-fields">
+        <div class="form-grid">
+          <div class="field"><label class="label" for="phone">Telephone</label><input class="input" id="phone" name="phone" value="{{ form_data.phone|default:'' }}" type="tel" autocomplete="tel"></div>
+          <div class="field"><label class="label" for="alt_phone">Alternative phone</label><input class="input" id="alt_phone" name="alt_phone" value="{{ form_data.alt_phone|default:'' }}" type="tel"></div>
+          <div class="field"><label class="label" for="email">Email</label><input class="input" id="email" name="email" value="{{ form_data.email|default:'' }}" type="email" autocomplete="email"></div>
+        </div>
+        <div class="field"><label class="label" for="address">Residential address</label><textarea class="input" id="address" name="address" rows="3">{{ form_data.address|default:'' }}</textarea></div>
+        <div class="form-grid">
+          <div class="field"><label class="label" for="nok_name">Next of kin name</label><input class="input" id="nok_name" name="nok_name" value="{{ form_data.nok_name|default:'' }}"></div>
+          <div class="field"><label class="label" for="nok_relationship">Relationship</label><input class="input" id="nok_relationship" name="nok_relationship" value="{{ form_data.nok_relationship|default:'' }}" placeholder="e.g. Spouse, Parent"></div>
+          <div class="field"><label class="label" for="nok_phone">Next of kin phone</label><input class="input" id="nok_phone" name="nok_phone" value="{{ form_data.nok_phone|default:'' }}" type="tel"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel registration-step" data-registration-step="3" aria-labelledby="identity-heading" hidden>
+      <div class="panel-heading registration-panel-heading">
+        <div><span class="panel-kicker">Step 3 of 4</span><h2 id="identity-heading">Identity & insurance</h2></div>
+      </div>
+      <div class="registration-fields">
+        <div class="form-grid">
+          <div class="field"><label class="label" for="nhis_number">NHIS number</label><input class="input" id="nhis_number" name="nhis_number" value="{{ form_data.nhis_number|default:'' }}"></div>
+          <div class="field"><label class="label" for="national_id">National ID / Passport</label><input class="input" id="national_id" name="national_id" value="{{ form_data.national_id|default:'' }}"></div>
+        </div>
+        <div class="field"><label class="label" for="notes">Registration notes</label><textarea class="input" id="notes" name="notes" rows="4" placeholder="Optional clinical, administrative, or identification notes">{{ form_data.notes|default:'' }}</textarea></div>
+      </div>
+    </section>
+
+    <section class="panel registration-step" data-registration-step="4" aria-labelledby="review-heading" hidden>
+      <div class="panel-heading registration-panel-heading">
+        <div><span class="panel-kicker">Step 4 of 4</span><h2 id="review-heading">Review patient details</h2></div>
+        <span class="pill pill--issued">Ready to register</span>
+      </div>
+      <div class="registration-review" id="registration-review">
+        <div class="review-group"><h3>Basic information</h3><dl><dt>Full name</dt><dd data-review="full-name"></dd><dt>Date of birth</dt><dd data-review="date-of-birth"></dd><dt>Gender</dt><dd data-review="gender"></dd><dt>Blood group</dt><dd data-review="blood-group"></dd></dl></div>
+        <div class="review-group"><h3>Contact</h3><dl><dt>Telephone</dt><dd data-review="phone"></dd><dt>Alternative phone</dt><dd data-review="alt-phone"></dd><dt>Email</dt><dd data-review="email"></dd><dt>Address</dt><dd data-review="address"></dd></dl></div>
+        <div class="review-group"><h3>Identity & insurance</h3><dl><dt>NHIS number</dt><dd data-review="nhis-number"></dd><dt>National ID / Passport</dt><dd data-review="national-id"></dd><dt>Next of kin</dt><dd data-review="next-of-kin"></dd></dl></div>
+        <div class="review-group"><h3>Notes</h3><p class="review-notes" data-review="notes"></p></div>
+      </div>
+    </section>
+
+    <div class="registration-actions sticky-actions">
+      <button class="btn-secondary" id="registration-back" type="button" hidden>Back</button>
+      <span class="registration-step-label" id="registration-step-label">Step 1 of 4</span>
+      <a class="btn-link" href="{% url 'patient_list' %}">Cancel</a>
+      <button class="btn" id="registration-next" type="button">Continue</button>
+      <button class="btn" id="registration-submit" type="submit" hidden>Register patient</button>
     </div>
-    <div><label>Blood group</label>
-      <select name="blood_group">
-        {% for v,l in patient_blood_groups %}<option value="{{v}}">{{l}}</option>{% endfor %}
-      </select>
-    </div>
-  </div>
-  <h2>Contact</h2>
-  <div class="grid cols-3">
-    <div><label>Phone</label><input name="phone"></div>
-    <div><label>Alt phone</label><input name="alt_phone"></div>
-    <div><label>Email</label><input type="email" name="email"></div>
-  </div>
-  <div><label>Address</label><textarea name="address" rows="2"></textarea></div>
-  <h2>Insurance &amp; ID</h2>
-  <div class="grid cols-3">
-    <div><label>NHIS number</label><input name="nhis_number"></div>
-    <div><label>National ID / Passport</label><input name="national_id"></div>
-    <div><label>Previous name</label><input name="previous_name"></div>
-  </div>
-  <h2>Next of Kin</h2>
-  <div class="grid cols-3">
-    <div><label>Name</label><input name="nok_name"></div>
-    <div><label>Relationship</label><input name="nok_relationship"></div>
-    <div><label>Phone</label><input name="nok_phone"></div>
-  </div>
-  <div><label>Notes</label><textarea name="notes" rows="2"></textarea></div>
-  <div style="display:flex;gap:.5rem;margin-top:1rem">
-    <button class="btn" type="submit">Register</button>
-    <a class="btn secondary" href="{% url 'patient_list' %}">Cancel</a>
-  </div>
-</form>
+  </form>
+</div>
+<script>
+  (() => {
+    const form = document.getElementById('patient-registration-form');
+    if (!form) return;
+
+    const steps = Array.from(form.querySelectorAll('[data-registration-step]'));
+    const indicators = Array.from(form.querySelectorAll('[data-step-indicator]'));
+    const back = document.getElementById('registration-back');
+    const next = document.getElementById('registration-next');
+    const submit = document.getElementById('registration-submit');
+    const stepLabel = document.getElementById('registration-step-label');
+    let currentStep = 1;
+
+    const value = (name) => form.elements[name]?.value.trim() || '—';
+    const selectedText = (name) => form.elements[name]?.selectedOptions?.[0]?.text || '—';
+    const updateReview = () => {
+      const fullName = [value('first_name'), value('middle_name'), value('last_name')].filter((item) => item !== '—').join(' ');
+      const gender = selectedText('gender');
+      const bloodGroup = selectedText('blood_group');
+      const kin = [value('nok_name'), value('nok_relationship'), value('nok_phone')].filter((item) => item !== '—').join(' · ');
+      const reviewValues = {
+        'full-name': fullName || '—',
+        'date-of-birth': value('date_of_birth'),
+        gender: gender,
+        'blood-group': bloodGroup,
+        phone: value('phone'),
+        'alt-phone': value('alt_phone'),
+        email: value('email'),
+        address: value('address'),
+        'nhis-number': value('nhis_number'),
+        'national-id': value('national_id'),
+        'next-of-kin': kin || '—',
+        notes: value('notes') === '—' ? 'No registration notes.' : value('notes'),
+      };
+      Object.entries(reviewValues).forEach(([key, text]) => {
+        const target = form.querySelector('[data-review="' + key + '"]');
+        if (target) target.textContent = text;
+      });
+    };
+
+    const showStep = (step) => {
+      currentStep = step;
+      steps.forEach((panel) => { panel.hidden = Number(panel.dataset.registrationStep) !== step; });
+      indicators.forEach((indicator) => {
+        const indicatorStep = Number(indicator.dataset.stepIndicator);
+        indicator.classList.toggle('is-current', indicatorStep === step);
+        indicator.classList.toggle('is-complete', indicatorStep < step);
+      });
+      back.hidden = step === 1;
+      next.hidden = step === steps.length;
+      submit.hidden = step !== steps.length;
+      stepLabel.textContent = 'Step ' + step + ' of ' + steps.length;
+      if (step === steps.length) updateReview();
+      form.querySelector('[data-registration-step="' + step + '"]')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    };
+
+    const validateStep = () => {
+      const panel = form.querySelector('[data-registration-step="' + currentStep + '"]');
+      const fields = Array.from(panel.querySelectorAll('[required]'));
+      const invalid = fields.find((field) => !field.checkValidity());
+      if (invalid) {
+        invalid.reportValidity();
+        invalid.focus();
+        return false;
+      }
+      return true;
+    };
+
+    back.addEventListener('click', () => showStep(Math.max(1, currentStep - 1)));
+    next.addEventListener('click', () => {
+      if (validateStep()) showStep(Math.min(steps.length, currentStep + 1));
+    });
+    showStep(1);
+  })();
+</script>
 {% endblock %}

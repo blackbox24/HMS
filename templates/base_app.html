@@ -8,38 +8,65 @@
   <script src="{% static 'js/htmx.min.js' %}" defer></script>
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-<header class="topbar">
-  <div class="topbar-left">
-    <a href="{% url 'dashboard' %}" class="brand" style="color: #fff; text-decoration: none; gap: 10px">
-      {% include "accounts/partials/_logo.html" with size=32 %}
-      <span class="brand-name">{{ HOSPITAL_NAME|default:"[Hospital name]" }}</span>
+<a class="skip-link" href="#main-content">Skip to main content</a>
+<div class="app-shell">
+  <aside class="sidebar" id="main-sidebar">
+    <a href="{% url 'dashboard' %}" class="sidebar-brand">
+      {% include "accounts/partials/_logo.html" with size=34 %}
+      <span class="sidebar-brand-text">
+        <span class="brand-name">{{ HOSPITAL_NAME|default:"[Hospital name]" }}</span>
+        <span class="brand-sub">Management System</span>
+      </span>
     </a>
-    {% block nav %}
-    <nav class="mainnav" aria-label="Main">
-      {% comment %} Set `active_nav` in each view's context. Show only modules the user's role can access. {% endcomment %}
-      <a href="{% url 'patient_list' %}" {% if active_nav == "patients" %}aria-current="page"{% endif %}>Patients</a>
-      <a href="#" {% if active_nav == "opd" %}aria-current="page"{% endif %}>OPD</a>
-      <a href="#" {% if active_nav == "inpatient" %}aria-current="page"{% endif %}>Inpatient</a>
-      <a href="#" {% if active_nav == "lab" %}aria-current="page"{% endif %}>Lab</a>
-      <a href="#" {% if active_nav == "pharmacy" %}aria-current="page"{% endif %}>Pharmacy</a>
-      <a href="#" {% if active_nav == "billing" %}aria-current="page"{% endif %}>Billing</a>
-      <a href="#" {% if active_nav == "reports" %}aria-current="page"{% endif %}>Reports</a>
-      {% if perms.accounts.issue_temp_password %}
-      <a href="{% url 'accounts:password_resets' %}" {% if active_nav == "password_resets" %}aria-current="page"{% endif %}>
-        Password resets
-        {% if pending_reset_count %}<span class="count-badge" aria-label="{{ pending_reset_count }} pending">{{ pending_reset_count }}</span>{% endif %}
-      </a>
-      {% endif %}
+
+    <nav class="sidebar-nav" aria-label="Main">
+      {% for section in nav_sections %}
+      <div class="nav-section">
+        <span class="nav-section-title">{{ section.title }}</span>
+        {% for item in section.items %}
+        <a href="{{ item.url }}" class="nav-link {% if active_nav == item.key %}is-active{% endif %}">{{ item.label }}</a>
+        {% endfor %}
+      </div>
+      {% endfor %}
     </nav>
-    {% endblock %}
+
+    <div class="sidebar-foot">
+      <span class="aside-meta">LAN · v{{ APP_VERSION|default:"1.0" }}</span>
+    </div>
+  </aside>
+
+  <div class="app-main">
+    <header class="topbar">
+      <button class="sidebar-toggle" type="button" aria-expanded="false" aria-controls="main-sidebar">
+        <span aria-hidden="true">☰</span><span>Menu</span>
+      </button>
+      <div class="topbar-user">
+        <span class="topbar-username">{{ request.user.get_username }}</span>
+        {% if request.user.groups.first %}<span class="topbar-role">{{ request.user.groups.first.name }}</span>{% endif %}
+      </div>
+      <form method="post" action="{% url 'accounts:logout' %}" style="margin:0">
+        {% csrf_token %}
+        <button type="submit" class="btn-secondary btn--sm">Sign out</button>
+      </form>
+    </header>
+
+    <main class="page" id="main-content">
+      {% for message in messages %}
+      <div class="alert {% if message.tags == 'success' %}alert--success{% elif message.tags == 'error' %}alert--danger{% else %}alert--warn{% endif %}" role="status">{{ message }}</div>
+      {% endfor %}
+      {% block content %}{% endblock %}
+    </main>
   </div>
-  <div class="topbar-user">
-    <span>{{ request.user.get_username }}{% if request.user.groups.first %} · {{ request.user.groups.first.name }}{% endif %}</span>
-    <form method="post" action="{% url 'accounts:logout' %}" style="display: inline">{% csrf_token %}<button type="submit">Sign out</button></form>
-  </div>
-</header>
-<main class="page">
-  {% block content %}{% endblock %}
-</main>
+</div>
+<script>
+  const sidebarToggle = document.querySelector('.sidebar-toggle');
+  const sidebar = document.getElementById('main-sidebar');
+  if (sidebarToggle && sidebar) {
+    sidebarToggle.addEventListener('click', () => {
+      const open = sidebar.classList.toggle('is-open');
+      sidebarToggle.setAttribute('aria-expanded', String(open));
+    });
+  }
+</script>
 </body>
 </html>

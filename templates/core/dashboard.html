@@ -1,40 +1,189 @@
-{% extends 'base.html' %}
-{% block title %}Dashboard — HMS{% endblock %}
+{% extends 'base_app.html' %}
+{% block title %}Dashboard{% endblock %}
 {% block content %}
-<h1>Dashboard</h1>
-<div class="grid cols-4">
-  <div class="card"><h2>Total Patients</h2><div style="font-size:2rem;font-weight:700">{{ total_patients }}</div></div>
-  <div class="card"><h2>Checked In Today</h2><div style="font-size:2rem;font-weight:700">—</div><div class="muted">coming in phase 2</div></div>
-  <div class="card"><h2>Pending Labs</h2><div style="font-size:2rem;font-weight:700">—</div><div class="muted">coming in phase 3</div></div>
-  <div class="card"><h2>Unpaid Invoices</h2><div style="font-size:2rem;font-weight:700">—</div><div class="muted">coming in phase 4</div></div>
-</div>
-<div class="grid cols-2">
-  <div class="card">
-    <h2>Recent Patients</h2>
-    <table>
-      <tr><th>MRN</th><th>Name</th><th>Registered</th></tr>
-      {% for p in recent_patients %}
-      <tr>
-        <td><a href="{% url 'patient_detail' p.pk %}">{{ p.mrn }}</a></td>
-        <td>{{ p.full_name }}</td>
-        <td class="muted">{{ p.registered_at|date:'d M Y H:i' }}</td>
-      </tr>
-      {% empty %}<tr><td colspan="3" class="muted">No patients yet.</td></tr>{% endfor %}
-    </table>
+<div class="page dashboard-page">
+  <div class="dashboard-heading">
+    <div>
+      <p class="eyebrow">{{ dashboard_role }} workspace</p>
+      <h1 class="page-title">Good {% now "H" as hour %}{% if hour|add:"0" < 12 %}morning{% elif hour|add:"0" < 18 %}afternoon{% else %}evening{% endif %}, {{ request.user.get_full_name|default:request.user.username }}</h1>
+      <p class="page-lead">Here is your work overview for {% now "l, d M Y" %}.</p>
+    </div>
+    <div class="toolbar">
+      {% if dashboard_role == "Receptionist" or dashboard_role == "Administrator" or dashboard_role == "Nurse" %}
+        <a class="btn-secondary" href="{% url 'check_in' %}">Check in patient</a>
+      {% endif %}
+      <a class="btn" href="{% url 'patient_list' %}">Find patient</a>
+    </div>
   </div>
-  <div class="card">
-    <h2>Recent Activity</h2>
-    <table>
-      <tr><th>When</th><th>User</th><th>Action</th><th>Record</th></tr>
-      {% for a in recent_activity %}
-      <tr>
-        <td class="muted">{{ a.created_at|date:'d M H:i' }}</td>
-        <td>{{ a.user|default:'system' }}</td>
-        <td><span class="badge">{{ a.action }}</span></td>
-        <td>{{ a.object_repr|truncatechars:40 }}</td>
-      </tr>
-      {% empty %}<tr><td colspan="4" class="muted">No activity yet.</td></tr>{% endfor %}
-    </table>
-  </div>
+
+  <section class="metric-grid" aria-label="Work summary">
+    {% if dashboard_role == "Doctor" %}
+      <article class="panel metric-card">
+        <span class="metric-label">Assigned to me</span>
+        <div class="metric-value">{{ assigned_encounters|length }}</div>
+        <a class="metric-link" href="{% url 'opd_board' %}">Open my queue</a>
+      </article>
+      <article class="panel metric-card">
+        <span class="metric-label">Patients waiting</span>
+        <div class="metric-value">{{ waiting_count }}</div>
+      </article>
+      <article class="panel metric-card">
+        <span class="metric-label">Open encounters</span>
+        <div class="metric-value">{{ open_encounters }}</div>
+      </article>
+    {% elif dashboard_role == "Nurse" %}
+      <article class="panel metric-card">
+        <span class="metric-label">Awaiting vitals</span>
+        <div class="metric-value">{{ waiting_count }}</div>
+        <a class="metric-link" href="{% url 'opd_board' %}">Open OPD board</a>
+      </article>
+      <article class="panel metric-card">
+        <span class="metric-label">Today's check-ins</span>
+        <div class="metric-value">{{ today_check_ins }}</div>
+      </article>
+      <article class="panel metric-card">
+        <span class="metric-label">Active encounters</span>
+        <div class="metric-value">{{ open_encounters }}</div>
+      </article>
+    {% elif dashboard_role == "Receptionist" %}
+      <article class="panel metric-card">
+        <span class="metric-label">Today's check-ins</span>
+        <div class="metric-value">{{ today_check_ins }}</div>
+        <a class="metric-link" href="{% url 'check_in' %}">Check in patient</a>
+      </article>
+      <article class="panel metric-card">
+        <span class="metric-label">Patients waiting</span>
+        <div class="metric-value">{{ waiting_count }}</div>
+      </article>
+      <article class="panel metric-card">
+        <span class="metric-label">Registered patients</span>
+        <div class="metric-value">{{ total_patients }}</div>
+      </article>
+    {% else %}
+      <article class="panel metric-card">
+        <span class="metric-label">Active encounters</span>
+        <div class="metric-value">{{ open_encounters }}</div>
+        <a class="metric-link" href="{% url 'opd_board' %}">View OPD board</a>
+      </article>
+      <article class="panel metric-card">
+        <span class="metric-label">Registered patients</span>
+        <div class="metric-value">{{ total_patients }}</div>
+      </article>
+      <article class="panel metric-card">
+        <span class="metric-label">{% if dashboard_role == "Administrator" %}Active staff{% else %}Patients waiting{% endif %}</span>
+        <div class="metric-value">{% if dashboard_role == "Administrator" %}{{ staff_count }}{% else %}{{ waiting_count }}{% endif %}</div>
+      </article>
+      {% if dashboard_role == "Administrator" %}
+      <article class="panel metric-card">
+        <span class="metric-label">Pending password resets</span>
+        <div class="metric-value">{{ pending_reset_count }}</div>
+        {% if perms.accounts.issue_temp_password %}<a class="metric-link" href="{% url 'accounts:password_resets' %}">Manage requests</a>{% endif %}
+      </article>
+      {% endif %}
+    {% endif %}
+  </section>
+
+  <section class="dashboard-grid">
+    {% if dashboard_role == "Doctor" %}
+      <article class="panel dashboard-panel">
+        <div class="panel-heading">
+          <div><span class="panel-kicker">Your workload</span><h2>Assigned patients</h2></div>
+          <a class="btn-secondary btn--sm" href="{% url 'opd_board' %}">View queue</a>
+        </div>
+        <div class="work-list">
+          {% for encounter in assigned_encounters %}
+          <a class="work-list-row" href="{% url 'encounter_detail' encounter.pk %}">
+            <span class="queue-token mono">{{ encounter.queue_token }}</span>
+            <span class="work-list-main">
+              <strong>{{ encounter.patient.full_name }}</strong>
+              <small>{{ encounter.get_status_display }} · {{ encounter.service|default:"General" }}</small>
+            </span>
+            <span class="work-list-time">{{ encounter.checked_in_at|time:"H:i" }}</span>
+          </a>
+          {% empty %}
+          <div class="empty-state"><strong>No assigned patients</strong><span>Patients assigned to you will appear here.</span></div>
+          {% endfor %}
+        </div>
+      </article>
+    {% elif dashboard_role == "Nurse" %}
+      <article class="panel dashboard-panel">
+        <div class="panel-heading">
+          <div><span class="panel-kicker">Clinical intake</span><h2>Patients awaiting vitals</h2></div>
+          <a class="btn-secondary btn--sm" href="{% url 'opd_board' %}">View board</a>
+        </div>
+        <div class="work-list">
+          {% for encounter in waiting_vitals %}
+          <a class="work-list-row" href="{% url 'encounter_detail' encounter.pk %}">
+            <span class="queue-token mono">{{ encounter.queue_token }}</span>
+            <span class="work-list-main"><strong>{{ encounter.patient.full_name }}</strong><small>{{ encounter.get_priority_display }} priority</small></span>
+            <span class="work-list-time">{{ encounter.checked_in_at|time:"H:i" }}</span>
+          </a>
+          {% empty %}
+          <div class="empty-state"><strong>Queue is clear</strong><span>No patients are currently awaiting vitals.</span></div>
+          {% endfor %}
+        </div>
+      </article>
+    {% elif dashboard_role == "Receptionist" %}
+      <article class="panel dashboard-panel">
+        <div class="panel-heading">
+          <div><span class="panel-kicker">Recent arrivals</span><h2>Recently registered patients</h2></div>
+          <a class="btn-secondary btn--sm" href="{% url 'patient_create' %}">Register</a>
+        </div>
+        <div class="work-list">
+          {% for patient in recent_patients %}
+          <a class="work-list-row" href="{% url 'patient_detail' patient.pk %}">
+            <span class="patient-avatar">{{ patient.full_name|slice:":1" }}</span>
+            <span class="work-list-main"><strong>{{ patient.full_name }}</strong><small>{{ patient.mrn }} · {{ patient.phone|default:"No telephone" }}</small></span>
+            <span class="work-list-time">{{ patient.registered_at|time:"H:i" }}</span>
+          </a>
+          {% empty %}
+          <div class="empty-state"><strong>No patients registered</strong><span>New registrations will appear here.</span></div>
+          {% endfor %}
+        </div>
+      </article>
+    {% else %}
+      <article class="panel dashboard-panel">
+        <div class="panel-heading">
+          <div><span class="panel-kicker">Patient flow</span><h2>Current work queue</h2></div>
+          <a class="btn-secondary btn--sm" href="{% url 'opd_board' %}">View OPD</a>
+        </div>
+        <div class="work-list">
+          {% for encounter in work_queue %}
+          <a class="work-list-row" href="{% url 'encounter_detail' encounter.pk %}">
+            <span class="queue-token mono">{{ encounter.queue_token }}</span>
+            <span class="work-list-main"><strong>{{ encounter.patient.full_name }}</strong><small>{{ encounter.get_status_display }}</small></span>
+            <span class="work-list-time">{{ encounter.checked_in_at|time:"H:i" }}</span>
+          </a>
+          {% empty %}
+          <div class="empty-state"><strong>No active encounters</strong><span>The clinical queue is clear.</span></div>
+          {% endfor %}
+        </div>
+      </article>
+    {% endif %}
+
+    <article class="panel dashboard-panel">
+      <div class="panel-heading">
+        <div><span class="panel-kicker">Master index</span><h2>Patient directory</h2></div>
+        <a class="btn-secondary btn--sm" href="{% url 'patient_list' %}">View all</a>
+      </div>
+      <div class="table-box compact-table">
+        <table class="table responsive-table">
+          <thead><tr><th>MRN</th><th>Patient</th><th>Telephone</th><th></th></tr></thead>
+          <tbody>
+            {% for patient in recent_patients %}
+            <tr>
+              <td class="mono" data-label="MRN">{{ patient.mrn }}</td>
+              <td data-label="Patient"><strong>{{ patient.full_name }}</strong><br><span class="help">{{ patient.date_of_birth|date:"d M Y" }}</span></td>
+              <td data-label="Telephone">{% if patient.phone %}<a href="tel:{{ patient.phone }}">{{ patient.phone }}</a>{% else %}<span class="help">—</span>{% endif %}</td>
+              <td class="right" data-label="Actions"><a class="text-action" href="{% url 'patient_detail' patient.pk %}">Details</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="empty">No patients found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </section>
 </div>
 {% endblock %}

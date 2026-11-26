@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "core",
     "accounts",
     "patients",
+    "encounters",
 ]
 
 MIDDLEWARE = [
@@ -89,6 +90,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "accounts.context_processors.hms_context",
+                "core.context_processors.nav_sections",
             ],
         },
     },
@@ -264,6 +266,11 @@ LOGGING = {
             "propagate": False,
         },
         "accounts": {
+            "handlers": ["app_file", "console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "encounters": {
             "handlers": ["app_file", "console"],
             "level": "DEBUG",
             "propagate": False,
