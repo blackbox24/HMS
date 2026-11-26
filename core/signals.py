@@ -8,4 +8,4 @@ def bind_session_to_user(sender, request, user, **kwargs):
     session_key = request.session.session_key
     if session_key and user.active_session_key != session_key:
         user.active_session_key = session_key
-        user.save(update_fields=['active_session_key'])
+        user.save(update_fields=["active_session_key"])

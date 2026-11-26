@@ -5,3 +5,8 @@ db.sqlite3
 .env
 staticfiles/
 logs/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+.coverage

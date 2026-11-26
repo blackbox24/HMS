@@ -10,13 +10,15 @@ class EmailOrUsernameBackend(ModelBackend):
 
     def authenticate(self, request, username=None, password=None, **kwargs):
         if username is None:
-            username = kwargs.get('email') or kwargs.get(User.USERNAME_FIELD)
+            username = kwargs.get("email") or kwargs.get(User.USERNAME_FIELD)
         if username is None or password is None:
             return None
 
-        user = (User.objects
-                .filter(Q(username__iexact=username) | Q(email__iexact=username))
-                .distinct().first())
+        user = (
+            User.objects.filter(Q(username__iexact=username) | Q(email__iexact=username))
+            .distinct()
+            .first()
+        )
         if user and user.check_password(password) and self.user_can_authenticate(user):
             return user
         return None

@@ -8,8 +8,8 @@ from patients.models import Patient
 @login_required
 def dashboard(request):
     ctx = {
-        'total_patients': Patient.objects.count(),
-        'recent_patients': Patient.objects.order_by('-registered_at')[:5],
-        'recent_activity': AuditLog.objects.select_related('user')[:10],
+        "total_patients": Patient.objects.count(),
+        "recent_patients": Patient.objects.order_by("-registered_at")[:5],
+        "recent_activity": AuditLog.objects.select_related("user")[:10],
     }
-    return render(request, 'core/dashboard.html', ctx)
+    return render(request, "core/dashboard.html", ctx)

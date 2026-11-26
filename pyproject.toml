@@ -64,9 +64,10 @@ warn_unused_ignores = true
 ignore_missing_imports = true
 plugins = ["mypy_django_plugin.main"]
 
-[tool.mypy.overrides]
+[[tool.mypy.overrides]]
 module = ["decouple", "axes.*", "guardian.*"]
 ignore_missing_imports = true
+disable_error_code = ["import-untyped"]
 
 [tool.django-stubs]
 django_settings_module = "config.settings"

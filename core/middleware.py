@@ -4,7 +4,7 @@ import time
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 
-access_logger = logging.getLogger('hms.access')
+access_logger = logging.getLogger("hms.access")
 
 
 class SingleSessionMiddleware:
@@ -19,14 +19,16 @@ class SingleSessionMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        user = getattr(request, 'user', None)
-        if (user is not None and user.is_authenticated
-                and request.session.get('auth_stopped') is not True):
+        user = getattr(request, "user", None)
+        if (
+            user is not None
+            and user.is_authenticated
+            and request.session.get("auth_stopped") is not True
+        ):
             session_key = request.session.session_key
-            if session_key and user.active_session_key \
-                    and session_key != user.active_session_key:
+            if session_key and user.active_session_key and session_key != user.active_session_key:
                 logout(request)
-                return redirect('login')
+                return redirect("login")
         return self.get_response(request)
 
 
@@ -40,7 +42,7 @@ class AccessLogMiddleware:
         start = time.monotonic()
         response = self.get_response(request)
         elapsed_ms = (time.monotonic() - start) * 1000
-        user = request.user.username if request.user.is_authenticated else '-'
+        user = request.user.username if request.user.is_authenticated else "-"
         access_logger.info(
             '%s "%s %s" %s %.1fms',
             user,

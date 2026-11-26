@@ -30,4 +30,15 @@
     {% endfor %}
   </table>
 </div>
+{% if page.paginator.num_pages > 1 %}
+<div style="display:flex;gap:.4rem;align-items:center;margin-top:1rem">
+  {% if page.has_previous %}
+    <a class="btn secondary small" href="?q={{ q }}&page={{ page.previous_page_number }}">← Prev</a>
+  {% endif %}
+  <span class="muted">Page {{ page.number }} of {{ page.paginator.num_pages }} ({{ page.paginator.count }} patients)</span>
+  {% if page.has_next %}
+    <a class="btn secondary small" href="?q={{ q }}&page={{ page.next_page_number }}">Next →</a>
+  {% endif %}
+</div>
+{% endif %}
 {% endblock %}
