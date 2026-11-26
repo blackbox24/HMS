@@ -1,0 +1,48 @@
+{% comment %}
+  One request = one <tbody> so HTMX can swap the row AND its reveal panel together.
+  Context: req (PasswordResetRequest), temp_password (str — ONLY in the POST response
+  right after issuing; never stored in plain text, never rendered again on reload).
+{% endcomment %}
+<tbody id="reset-{{ req.id }}">
+  <tr {% if temp_password %}class="is-highlight"{% endif %}>
+    <td class="num">{{ req.created_at|time:"H:i" }}</td>
+    <td style="font-weight: 600">{{ req.user.get_full_name|default:req.user.username }}</td>
+    <td class="mono" style="font-size: 14px">{{ req.user.username }}</td>
+    <td>{{ req.user.department|default:"—" }}</td>
+    <td>
+      {% if req.status == "pending" %}<span class="pill pill--pending">Pending</span>
+      {% else %}<span class="pill pill--issued">Issued</span>{% endif %}
+    </td>
+    <td class="right">
+      {% if req.status == "pending" %}
+      <button class="btn btn--sm"
+              hx-post="{% url 'accounts:issue_temp_password' req.id %}"
+              hx-target="#reset-{{ req.id }}" hx-swap="outerHTML"
+              hx-confirm="Have you checked {{ req.user.get_full_name|default:req.user.username }}'s staff ID?">Issue temp password</button>
+      {% else %}
+      <span class="help">by {{ req.issued_by.get_username }} · {{ req.issued_at|time:"H:i" }}</span>
+      {% endif %}
+    </td>
+  </tr>
+  {% if temp_password %}
+  <tr class="is-highlight">
+    <td colspan="6" style="padding: 0 16px 18px">
+      <div class="reveal" role="status">
+        <div>
+          <span class="reveal-label">Temporary password for {{ req.user.username }}</span>
+          <span class="reveal-code">{{ temp_password }}</span>
+          <span class="reveal-note">Shown once. It works for one sign-in only, and they must set a new password straight away.</span>
+        </div>
+        <div class="actions no-print" style="gap: 10px">
+          <button type="button" class="btn-secondary btn--sm" onclick="window.print()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1h-2"/><rect x="6" y="14" width="12" height="7"/></svg>Print slip
+          </button>
+          <button class="btn btn--sm"
+                  hx-post="{% url 'accounts:mark_handed_over' req.id %}"
+                  hx-target="#reset-{{ req.id }}" hx-swap="outerHTML">Mark handed over</button>
+        </div>
+      </div>
+    </td>
+  </tr>
+  {% endif %}
+</tbody>

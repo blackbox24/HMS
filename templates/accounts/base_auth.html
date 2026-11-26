@@ -1,0 +1,32 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Sign in{% endblock %} · {{ HOSPITAL_NAME|default:"Hospital Management System" }}</title>
+  <link rel="stylesheet" href="{% static 'css/hms.css' %}">
+  <script src="{% static 'js/htmx.min.js' %}" defer></script>
+</head>
+<body>
+<div class="auth-shell">
+  <aside class="auth-aside">
+    <div class="brand">
+      {% include "accounts/partials/_logo.html" with size=44 %}
+      <div class="brand-text">
+        <span class="brand-name">{{ HOSPITAL_NAME|default:"[Hospital name]" }}</span>
+        <span class="brand-sub">Hospital Management System</span>
+      </div>
+    </div>
+    <div class="aside-foot">
+      <div class="server-status"><span class="dot" aria-hidden="true"></span>Local server online</div>
+      <p class="aside-note">Authorized staff only. Every sign-in and record access is logged.</p>
+      <span class="aside-meta">LAN · v{{ APP_VERSION|default:"1.0" }}</span>
+    </div>
+  </aside>
+  <main class="auth-main">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>

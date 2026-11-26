@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "guardian",
     "axes",
     "core",
+    "accounts",
     "patients",
 ]
 
@@ -70,9 +71,9 @@ AUTHENTICATION_BACKENDS = [
 
 AUTH_USER_MODEL = "core.User"
 
-LOGIN_URL = "login"
+LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "dashboard"
-LOGOUT_REDIRECT_URL = "login"
+LOGOUT_REDIRECT_URL = "accounts:login"
 
 ROOT_URLCONF = "config.urls"
 
@@ -86,6 +87,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "accounts.context_processors.hms_context",
             ],
         },
     },
@@ -145,9 +147,16 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ---------------------------------------------------------------------------
 AXES_ENABLED = True
 AXES_FAILURE_LIMIT = 3  # lock after 3 wrong attempts
-AXES_COOLOFF_TIME = 1  # hours until attempts reset
+AXES_COOLOFF_TIME = None  # never auto-expire — admin unlocks manually
 AXES_RESET_ON_SUCCESS = True  # clear failures on successful login
-AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
+AXES_LOCKOUT_PARAMETERS = ["username"]  # lock by username, not shared LAN IP
+AXES_LOCKOUT_TEMPLATE = "accounts/locked.html"
+AXES_LOCKOUT_CALLABLE = "accounts.lockout.lockout_response"
+
+# Branding shown in the auth UI (see accounts/context_processors.py)
+HOSPITAL_NAME = config("HOSPITAL_NAME", default="Hospital Management System")
+APP_VERSION = config("APP_VERSION", default="1.0")
+HELP_DESK_LOCATION = config("HELP_DESK_LOCATION", default="the IT office")
 
 
 # ---------------------------------------------------------------------------
@@ -248,6 +257,11 @@ LOGGING = {
             "propagate": False,
         },
         "patients": {
+            "handlers": ["app_file", "console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "accounts": {
             "handlers": ["app_file", "console"],
             "level": "DEBUG",
             "propagate": False,

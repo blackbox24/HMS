@@ -53,7 +53,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["config", "core", "patients"]
+known-first-party = ["accounts", "config", "core", "patients"]
 
 [tool.mypy]
 python_version = "3.13"

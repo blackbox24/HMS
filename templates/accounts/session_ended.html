@@ -1,0 +1,24 @@
+{% extends "accounts/base_auth.html" %}
+{% comment %}
+  Shown when this session was killed because the same user signed in elsewhere
+  (one active session per user). Context: username, new_session_location (str), new_session_at (datetime)
+{% endcomment %}
+{% block title %}Signed out{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <div class="state-icon state-icon--info">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+  </div>
+  <div class="stack-sm">
+    <h1 class="auth-title">You were signed out</h1>
+    <p class="auth-lead" style="color: var(--ink-2)">Your account signed in on another workstation. Only one active session is allowed per user, so this one was closed.</p>
+  </div>
+  <dl class="facts panel">
+    <dt>Account</dt><dd>{{ username }}</dd>
+    {% if new_session_location %}<dt>New session</dt><dd>{{ new_session_location }}</dd>{% endif %}
+    {% if new_session_at %}<dt>Time</dt><dd>{{ new_session_at|date:"D j M, H:i" }}</dd>{% endif %}
+  </dl>
+  <p class="text-danger"><strong>Wasn't you?</strong> Tell an administrator now so they can lock the account and check the audit log.</p>
+  <a href="{% url 'accounts:login' %}" class="btn" style="align-self: flex-start">Sign in again</a>
+</div>
+{% endblock %}

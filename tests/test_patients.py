@@ -50,18 +50,18 @@ class TestPatientModel:
 class TestAuth:
     def test_login_with_username(self, admin_user):
         c = Client()
-        resp = c.post(reverse("login"), {"username": "admin", "password": "pass12345"})
+        resp = c.post(reverse("accounts:login"), {"username": "admin", "password": "pass12345"})
         assert resp.status_code == 302
         assert c.session.get("_auth_user_id")
 
     def test_login_with_email(self, admin_user):
         c = Client()
-        resp = c.post(reverse("login"), {"username": "admin@test.local", "password": "pass12345"})
+        resp = c.post(reverse("accounts:login"), {"username": "admin@test.local", "password": "pass12345"})
         assert resp.status_code == 302
 
     def test_login_wrong_password_rejected(self, admin_user):
         c = Client()
-        resp = c.post(reverse("login"), {"username": "admin", "password": "wrong"})
+        resp = c.post(reverse("accounts:login"), {"username": "admin", "password": "wrong"})
         assert resp.status_code == 200  # re-renders form
         assert not c.session.get("_auth_user_id")
 

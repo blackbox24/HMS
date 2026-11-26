@@ -11,8 +11,8 @@ class SingleSessionMiddleware:
     """Enforce one active session per user.
 
     On login we store the session key on the user (see core/signals.py).
-    Any request whose session key no longer matches is logged out, so a
-    login on a second terminal kicks the first one off.
+    Any request whose session key no longer matches is logged out and sent
+    to the "session ended" page — a login elsewhere kicked this session out.
     """
 
     def __init__(self, get_response):
@@ -27,14 +27,20 @@ class SingleSessionMiddleware:
         ):
             session_key = request.session.session_key
             if session_key and user.active_session_key and session_key != user.active_session_key:
+                username = user.username
                 logout(request)
-                return redirect("login")
+                request.session["ended_username"] = username
+                response = redirect("accounts:session_ended")
+                if request.headers.get("HX-Request") == "true":
+                    response["HX-Redirect"] = response.url
+                return response
         return self.get_response(request)
 
 
 FORCE_RESET_EXEMPT_PREFIXES = (
-    "/password-change/",
+    "/accounts/password-change/",
     "/accounts/logout/",
+    "/accounts/session-ended/",
     "/admin/",
     "/static/",
 )
@@ -55,7 +61,7 @@ class ForcePasswordChangeMiddleware:
             and user.must_change_password
             and not request.path.startswith(FORCE_RESET_EXEMPT_PREFIXES)
         ):
-            return redirect("password_change")
+            return redirect("accounts:password_change")
         return self.get_response(request)
 
 

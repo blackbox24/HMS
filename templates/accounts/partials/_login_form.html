@@ -1,0 +1,58 @@
+{% comment %}
+  Login form partial. Rendered inside login.html on full page loads, and returned
+  alone for HTMX posts (hx-swap="outerHTML") so the username stays filled in.
+  Context:
+    form               AuthenticationForm (username field accepts username OR email)
+    attempts_left      int | None  — 3 minus axes failure count for this username
+    next               str | None
+{% endcomment %}
+<form id="login-form" class="auth-card" method="post" action="{% url 'accounts:login' %}"
+      hx-post="{% url 'accounts:login' %}" hx-target="this" hx-swap="outerHTML" novalidate>
+  {% csrf_token %}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+  <div class="stack-sm">
+    <h1 class="auth-title">Sign in</h1>
+    <p class="auth-lead">Use your username or staff email.</p>
+  </div>
+
+  {% if form.non_field_errors %}
+  <div class="alert alert--danger" role="alert">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 7v6M12 17h.01"/></svg>
+    <div>
+      <span class="alert-title">Username or password is incorrect.</span>
+      {% if attempts_left is not None %}
+      <span class="alert-body">{{ attempts_left }} attempt{{ attempts_left|pluralize }} left before this account is locked.</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="field">
+    <label class="label" for="id_username">Username or email</label>
+    <input class="input" id="id_username" name="username" type="text"
+           value="{{ form.username.value|default:'' }}" autocomplete="username"
+           placeholder="e.g. k.mensah" required {% if not form.username.value %}autofocus{% endif %}>
+  </div>
+
+  <div class="field">
+    <div class="field-head">
+      <label class="label" for="id_password">Password</label>
+      <a href="{% url 'accounts:password_reset_request' %}">Forgot password?</a>
+    </div>
+    <div class="password-wrap">
+      <input class="input" id="id_password" name="password" type="password" autocomplete="current-password" required
+             {% if form.non_field_errors %}aria-invalid="true" aria-describedby="pw-help" autofocus{% endif %}>
+      <button type="button" class="password-toggle" aria-controls="id_password" aria-pressed="false">Show</button>
+    </div>
+    {% if form.non_field_errors %}
+    <span class="help" id="pw-help">Password cleared. Check Caps Lock and try again.</span>
+    {% endif %}
+  </div>
+
+  <button type="submit" class="btn">Sign in</button>
+
+  {% if not form.non_field_errors %}
+  <p class="help divider-note">Press <kbd>Enter</kbd> to sign in. After 3 failed attempts your account is locked until an administrator unlocks it.</p>
+  {% endif %}
+</form>

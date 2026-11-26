@@ -1,0 +1,41 @@
+{% comment %}
+  One locked-account row. Rendered inline by password_resets.html and returned
+  alone by the unlock view for HTMX swaps (hx-target="#locked-{{ slug }}").
+  Context: acct {username, full_name, locked_at, workstation, ip_address},
+           temp_password (str|None — only right after issuing),
+           resolved (bool — account was just unlocked)
+{% endcomment %}
+<div class="locked-row" id="locked-{{ acct.username|slugify }}">
+  <div class="locked-who">
+    <div class="locked-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+    </div>
+    <div class="stack-sm" style="gap: 3px">
+      <span style="font-size: 15px; font-weight: 600">{{ acct.full_name }} <span class="mono help" style="font-size: 14px; font-weight: 400">{{ acct.username }}</span></span>
+      {% if resolved %}
+      <span class="help">Unlocked{% if temp_password %} · temporary password issued{% endif %}</span>
+      {% else %}
+      <span class="help">Locked {{ acct.locked_at|time:"H:i" }}{% if acct.workstation %} · {{ acct.workstation }}{% endif %}{% if acct.ip_address %} · {{ acct.ip_address }}{% endif %}</span>
+      {% endif %}
+    </div>
+  </div>
+  {% if temp_password %}
+  <div class="reveal" role="status" style="margin: 0">
+    <div>
+      <span class="reveal-label">Temporary password for {{ acct.username }}</span>
+      <span class="reveal-code">{{ temp_password }}</span>
+      <span class="reveal-note">Shown once. It works for one sign-in only, and they must set a new password straight away.</span>
+    </div>
+  </div>
+  {% else %}
+  <div class="actions" style="gap: 10px">
+    <button class="btn-secondary btn--sm"
+            hx-post="{% url 'accounts:unlock_account' acct.username %}?issue_temp=1"
+            hx-target="#locked-{{ acct.username|slugify }}" hx-swap="outerHTML"
+            hx-confirm="Unlock {{ acct.username }} and issue a temporary password?">Unlock and issue temp password</button>
+    <button class="btn btn--sm"
+            hx-post="{% url 'accounts:unlock_account' acct.username %}"
+            hx-target="#locked-{{ acct.username|slugify }}" hx-swap="outerHTML">Unlock</button>
+  </div>
+  {% endif %}
+</div>

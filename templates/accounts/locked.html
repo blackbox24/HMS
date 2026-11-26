@@ -1,0 +1,24 @@
+{% extends "accounts/base_auth.html" %}
+{% block title %}Account locked{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <div class="state-icon state-icon--warn">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+  </div>
+  <div class="stack-sm">
+    <h1 class="auth-title">Account locked</h1>
+    <p class="auth-lead" style="color: var(--ink-2)">There were 3 failed sign-in attempts for <strong>{{ username|default:"this account" }}</strong>. To protect patient records, this account is now locked.</p>
+  </div>
+  <div class="panel">
+    <strong class="panel-title">What to do next</strong>
+    <ol>
+      <li>Go to an administrator or the IT desk with your staff ID.</li>
+      <li>They will unlock your account, and can issue a temporary password if you've forgotten yours.</li>
+    </ol>
+  </div>
+  <div class="actions">
+    <a href="{% url 'accounts:login' %}" class="btn-secondary">Back to sign in</a>
+    {% if locked_at %}<span class="help">Locked at {{ locked_at|time:"H:i" }}{% if workstation %} · {{ workstation }}{% endif %}</span>{% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "accounts/base_auth.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+  {% include "accounts/partials/_login_form.html" %}
+{% endblock %}
+{% block scripts %}
+<script>
+  /* Show/Hide password toggle (works for any .password-toggle on the page) */
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".password-toggle");
+    if (!btn) return;
+    var input = document.getElementById(btn.getAttribute("aria-controls"));
+    var show = input.type === "password";
+    input.type = show ? "text" : "password";
+    btn.textContent = show ? "Hide" : "Show";
+    btn.setAttribute("aria-pressed", show ? "true" : "false");
+  });
+</script>
+{% endblock %}
