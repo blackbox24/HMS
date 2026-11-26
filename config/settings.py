@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
 
 from decouple import config
@@ -147,7 +148,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ---------------------------------------------------------------------------
 AXES_ENABLED = True
 AXES_FAILURE_LIMIT = 3  # lock after 3 wrong attempts
-AXES_COOLOFF_TIME = None  # never auto-expire — admin unlocks manually
+AXES_COOLOFF_TIME = timedelta(minutes=5)  # auto-unlock 5 min after lockout
+AXES_USE_ATTEMPT_EXPIRATION = True  # track per-attempt expiry in axes_accessattemptexpiration
 AXES_RESET_ON_SUCCESS = True  # clear failures on successful login
 AXES_LOCKOUT_PARAMETERS = ["username"]  # lock by username, not shared LAN IP
 AXES_LOCKOUT_TEMPLATE = "accounts/locked.html"
