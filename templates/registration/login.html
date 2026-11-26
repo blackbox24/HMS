@@ -1,11 +1,10 @@
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Login — HMS</title>
-  <style>
-    body { margin:0; font-family:system-ui,sans-serif; background:#f4f6f9; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+  <style>    body { margin:0; font-family:system-ui,sans-serif; background:#f4f6f9; display:flex; align-items:center; justify-content:center; min-height:100vh; }
     .card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:2rem; width:340px; }
     h1 { font-size:1.3rem; margin:0 0 1.5rem; color:#1e3a5f; }
     label { display:block; font-size:.85rem; font-weight:600; color:#475569; margin-bottom:.25rem; }
@@ -27,5 +26,6 @@
     <button type="submit">Sign in</button>
     <a href="{% url 'password_reset_request' %}" style="display:block;text-align:center;margin-top:.9rem;color:#2563eb;text-decoration:none;font-size:.88rem">Forgot password?</a>
   </form>
+  <script src="{% static 'js/password-toggle.js' %}"></script>
 </body>
 </html>
