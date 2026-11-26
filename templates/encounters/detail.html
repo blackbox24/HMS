@@ -39,14 +39,20 @@
         </form>
       {% endif %}
 
-      {% if e.status == 'VITALS' or e.status == 'QUEUED' or e.status == 'CHECKED_IN' %}
+      {% if e.status == 'VITALS' or e.status == 'QUEUED' or e.status == 'CHECKED_IN' or e.status == 'WITH_DOCTOR' %}
       <form method="post" action="{% url 'queue_action' e.pk %}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         {% csrf_token %}<input type="hidden" name="action" value="assign">
         <select name="doctor" class="input" style="width:auto;height:36px" required>
-          <option value="">Assign doctor…</option>
+          <option value="">{% if e.status == 'WITH_DOCTOR' %}Reassign doctor…{% else %}Assign doctor…{% endif %}</option>
           {% for d in doctors %}<option value="{{ d.pk }}">{{ d.get_full_name|default:d.username }}</option>{% endfor %}
         </select>
-        <button class="btn-secondary btn--sm" type="submit">Assign &amp; call</button>
+        <button class="btn-secondary btn--sm" type="submit">{% if e.status == 'WITH_DOCTOR' %}Reassign{% else %}Assign &amp; call{% endif %}</button>
+      </form>
+      {% endif %}
+      {% if e.status == 'WITH_DOCTOR' %}
+      <form method="post" action="{% url 'queue_action' e.pk %}" style="display:inline">{% csrf_token %}
+        <input type="hidden" name="action" value="queue">
+        <button class="btn-secondary btn--sm" type="submit">Return to queue</button>
       </form>
       {% endif %}
 

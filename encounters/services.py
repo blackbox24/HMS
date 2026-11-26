@@ -5,7 +5,7 @@ number allocation, audit logging, and the 24h diagnosis clock.
 """
 import logging
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from core.audit import audit
@@ -51,17 +51,33 @@ def _transition(request, encounter, new_status, **fields):
 @transaction.atomic
 def check_in(request, patient, encounter_type=Encounter.Type.OPD,
              service="", priority="ROUTINE", chief_complaint=""):
-    """Register arrival: creates the encounter and issues a queue number."""
-    queue_number = Encounter.next_queue_number(encounter_type)
-    encounter = Encounter.objects.create(
-        patient=patient,
-        encounter_type=encounter_type,
-        service=service,
-        priority=priority,
-        chief_complaint=chief_complaint,
-        queue_number=queue_number,
-        checked_in_by=request.user,
-    )
+    """Register arrival: creates the encounter and issues a queue number.
+
+    Retries on unique-constraint collision so concurrent check-ins can't
+    duplicate a daily token even if the sequence read raced.
+    """
+    queue_date = timezone.localdate()
+    encounter = None
+    for _ in range(3):
+        try:
+            with transaction.atomic():
+                queue_number = Encounter.next_queue_number(
+                    encounter_type, day=queue_date)
+                encounter = Encounter.objects.create(
+                    patient=patient,
+                    encounter_type=encounter_type,
+                    service=service,
+                    priority=priority,
+                    chief_complaint=chief_complaint,
+                    queue_number=queue_number,
+                    queue_date=queue_date,
+                    checked_in_by=request.user,
+                )
+            break
+        except IntegrityError:
+            continue
+    if encounter is None:
+        raise IntegrityError("Could not allocate a queue number, try again")
     audit(request, "CREATE", encounter,
           changes={"check_in": patient.mrn,
                    "queue_token": encounter.queue_token})
@@ -91,10 +107,19 @@ def send_to_queue(request, encounter):
 
 @transaction.atomic
 def assign_doctor(request, encounter, doctor):
-    """Assign a consultant and pull the patient out of the queue."""
+    """Assign/reassign a consultant.
+
+    From QUEUED/VITALS/CHECKED_IN this pulls the patient out of the queue
+    (-> WITH_DOCTOR). From WITH_DOCTOR it just swaps the consultant —
+    e.g. the assigned doctor was called away.
+    """
     encounter.doctor = doctor
     encounter.assigned_at = timezone.now()
     encounter.save()
+    if encounter.status == Encounter.Status.WITH_DOCTOR:
+        audit(request, "UPDATE", encounter,
+              changes={"doctor": f"reassigned -> {doctor}"})
+        return encounter
     return _transition(request, encounter, Encounter.Status.WITH_DOCTOR)
 
 

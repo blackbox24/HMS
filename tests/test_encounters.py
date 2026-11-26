@@ -147,6 +147,87 @@ class TestFlow:
         assert encounter.is_24h_overdue
 
 
+class TestVitalsEdgeCases:
+    def test_bmi_zero_height_no_crash(self, db):
+        from encounters.models import Vitals
+        v = Vitals(weight_kg=70, height_cm=0)
+        assert v.bmi is None
+
+    def test_malformed_vitals_post_rejected(self, client, encounter, roles):
+        client.force_login(roles('nurse_m', 'Nurse'))
+        resp = client.post(
+            reverse('record_vitals', args=[encounter.pk]),
+            {'temperature': 'not-a-number'})
+        assert resp.status_code == 302  # redirected back with error message
+        assert not encounter.vitals.exists()
+
+
+class TestConsultAuthorization:
+    def _with_doctor(self, encounter, doctor):
+        from django.test import RequestFactory
+
+        request = RequestFactory().post('/')
+        request.user = doctor
+        encounter.doctor = doctor
+        encounter.status = Encounter.Status.WITH_DOCTOR
+        encounter.save()
+        return request
+
+    def test_unassigned_doctor_cannot_consult(self, client, encounter, roles):
+        assigned = roles('doc_a', 'Doctor')
+        other = roles('doc_b', 'Doctor')
+        self._with_doctor(encounter, assigned)
+        client.force_login(other)
+        resp = client.post(reverse('consult', args=[encounter.pk]),
+                           {'assessment': 'x'})
+        assert resp.status_code == 403
+
+    def test_assigned_doctor_can_consult(self, client, encounter, roles):
+        doctor = roles('doc_c', 'Doctor')
+        self._with_doctor(encounter, doctor)
+        client.force_login(doctor)
+        resp = client.post(reverse('consult', args=[encounter.pk]),
+                           {'assessment': 'fine'})
+        assert resp.status_code == 302
+        encounter.refresh_from_db()
+        assert encounter.status == Encounter.Status.CONSULTED
+
+    def test_admin_group_can_consult_any(self, client, encounter, roles):
+        doctor = roles('doc_d', 'Doctor')
+        admin = roles('admin_c', 'Administrator')
+        self._with_doctor(encounter, doctor)
+        client.force_login(admin)
+        resp = client.post(reverse('consult', args=[encounter.pk]),
+                           {'assessment': 'reviewed'})
+        assert resp.status_code == 302
+
+
+class TestTimerCommand:
+    def test_flags_only_consulted_and_detained_once(self, db, encounter, roles):
+        from io import StringIO
+
+        from django.core.management import call_command
+        doctor = roles('doc_t', 'Doctor')
+        encounter.doctor = doctor
+        encounter.status = Encounter.Status.CONSULTED
+        encounter.diagnosis_at = timezone.now() - timezone.timedelta(hours=30)
+        encounter.save()
+
+        out = StringIO()
+        call_command('check_encounter_timers', stdout=out)
+        encounter.refresh_from_db()
+        assert encounter.overdue_alerted_at is not None
+
+        # ADMITTED is excluded from the watch list
+        Encounter.objects.filter(pk=encounter.pk).update(
+            status=Encounter.Status.ADMITTED, overdue_alerted_at=None)
+        encounter.refresh_from_db()
+        out = StringIO()
+        call_command('check_encounter_timers', stdout=out)
+        encounter.refresh_from_db()
+        assert encounter.overdue_alerted_at is None
+
+
 class TestViews:
     def test_opd_board_requires_role(self, client, db):
         user = User.objects.create_user('plain2', 'p2@t.local', 'pass12345')

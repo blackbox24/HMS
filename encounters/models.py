@@ -77,6 +77,7 @@ class Encounter(models.Model):
 
     # Queue
     queue_number = models.PositiveIntegerField(null=True, blank=True)
+    queue_date = models.DateField(null=True, blank=True)
     priority = models.CharField(
         max_length=10,
         choices=[("ROUTINE", "Routine"), ("URGENT", "Urgent"), ("EMERGENCY", "Emergency")],
@@ -96,6 +97,7 @@ class Encounter(models.Model):
     assigned_at = models.DateTimeField(null=True, blank=True)
     consultation_started_at = models.DateTimeField(null=True, blank=True)
     diagnosis_at = models.DateTimeField(null=True, blank=True)
+    overdue_alerted_at = models.DateTimeField(null=True, blank=True)
     disposition = models.CharField(max_length=20, blank=True)  # DISCHARGED/ADMITTED/DETAINED
     discharged_at = models.DateTimeField(null=True, blank=True)
     cancel_reason = models.TextField(blank=True)
@@ -112,6 +114,13 @@ class Encounter(models.Model):
             models.Index(fields=["status", "checked_in_at"]),
             models.Index(fields=["patient", "-checked_in_at"]),
             models.Index(fields=["doctor", "status"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["encounter_type", "queue_date", "queue_number"],
+                condition=models.Q(queue_number__isnull=False),
+                name="uniq_daily_queue_token",
+            ),
         ]
 
     def __str__(self):
@@ -144,15 +153,11 @@ class Encounter(models.Model):
     def next_queue_number(cls, encounter_type, day=None):
         """Daily sequence per encounter type, allocated under a lock."""
         day = day or timezone.localdate()
-        start = timezone.make_aware(
-            timezone.datetime.combine(day, timezone.datetime.min.time())
-        )
-        end = start + timezone.timedelta(days=1)
         with transaction.atomic():
             last = (
                 cls.objects.select_for_update()
-                .filter(checked_in_at__gte=start, checked_in_at__lt=end,
-                        encounter_type=encounter_type, queue_number__isnull=False)
+                .filter(queue_date=day, encounter_type=encounter_type,
+                        queue_number__isnull=False)
                 .order_by("-queue_number")
                 .values_list("queue_number", flat=True)
                 .first()
@@ -190,7 +195,7 @@ class Vitals(models.Model):
 
     @property
     def bmi(self):
-        if self.weight_kg and self.height_cm:
+        if self.weight_kg and self.height_cm and self.height_cm > 0:
             h = float(self.height_cm) / 100
             return round(float(self.weight_kg) / (h * h), 1)
         return None
