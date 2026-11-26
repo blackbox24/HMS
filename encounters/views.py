@@ -103,7 +103,7 @@ def check_in(request):
                             | Q(last_name__icontains=q) | Q(phone__icontains=q))
                     [:10])
     return render(request, 'encounters/check_in.html', {
-        'active_nav': 'opd',
+        'active_nav': 'check_in',
         'q': q,
         'patients': patients,
         'types': Encounter.Type.choices,

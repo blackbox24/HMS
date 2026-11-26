@@ -1,42 +1,80 @@
-{% extends 'base.html' %}
-{% block title %}{{ patient.full_name }} — HMS{% endblock %}
+{% extends 'base_app.html' %}
+{% block title %}{{ patient.full_name }}{% endblock %}
 {% block content %}
-<div style="display:flex;justify-content:space-between;align-items:center">
-  <h1>{{ patient.full_name }}</h1>
-  <span class="badge" style="font-size:1rem;padding:.4rem .9rem">{{ patient.mrn }}</span>
-</div>
-<div class="grid cols-3">
-  <div class="card">
-    <h2>Demographics</h2>
-    <table>
-      <tr><td class="muted">DOB</td><td>{{ patient.date_of_birth|date:'d M Y' }} ({{ patient.age }}y)</td></tr>
-      <tr><td class="muted">Gender</td><td>{{ patient.get_gender_display }}</td></tr>
-      <tr><td class="muted">Blood</td><td>{{ patient.get_blood_group_display }}</td></tr>
-      <tr><td class="muted">NHIS</td><td>{{ patient.nhis_number|default:'—' }}</td></tr>
-      <tr><td class="muted">National ID</td><td>{{ patient.national_id|default:'—' }}</td></tr>
-    </table>
+<div class="page">
+  <div>
+    <a class="back-link" href="{% url 'patient_list' %}">← Patients</a>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:8px">
+      <h1 class="page-title" style="margin:0">{{ patient.full_name }}</h1>
+      <span class="pill pill--issued mono">{{ patient.mrn }}</span>
+    </div>
+    <p class="page-lead">
+      {{ patient.age }}y {{ patient.get_gender_display }} · {{ patient.get_blood_group_display }} blood
+      {% if patient.phone %}· {{ patient.phone }}{% endif %}
+      {% if patient.nhis_number %}· NHIS {{ patient.nhis_number }}{% endif %}
+    </p>
   </div>
-  <div class="card">
-    <h2>Contact</h2>
-    <table>
-      <tr><td class="muted">Phone</td><td>{{ patient.phone|default:'—' }}</td></tr>
-      <tr><td class="muted">Alt phone</td><td>{{ patient.alt_phone|default:'—' }}</td></tr>
-      <tr><td class="muted">Email</td><td>{{ patient.email|default:'—' }}</td></tr>
-      <tr><td class="muted">Address</td><td>{{ patient.address|default:'—' }}</td></tr>
-    </table>
+
+  <div class="queue-grid">
+    <section class="panel">
+      <strong class="panel-title">Demographics</strong>
+      <dl class="facts" style="margin-top:10px">
+        <dt>DOB</dt><dd>{{ patient.date_of_birth|date:'d M Y' }}</dd>
+        <dt>Gender</dt><dd>{{ patient.get_gender_display }}</dd>
+        <dt>Blood group</dt><dd>{{ patient.get_blood_group_display }}</dd>
+        <dt>National ID</dt><dd>{{ patient.national_id|default:'—' }}</dd>
+      </dl>
+    </section>
+    <section class="panel">
+      <strong class="panel-title">Contact</strong>
+      <dl class="facts" style="margin-top:10px">
+        <dt>Phone</dt><dd>{{ patient.phone|default:'—' }}</dd>
+        <dt>Alt phone</dt><dd>{{ patient.alt_phone|default:'—' }}</dd>
+        <dt>Email</dt><dd>{{ patient.email|default:'—' }}</dd>
+        <dt>Address</dt><dd>{{ patient.address|default:'—' }}</dd>
+      </dl>
+    </section>
+    <section class="panel">
+      <strong class="panel-title">Next of kin</strong>
+      <dl class="facts" style="margin-top:10px">
+        <dt>Name</dt><dd>{{ patient.nok_name|default:'—' }}</dd>
+        <dt>Relationship</dt><dd>{{ patient.nok_relationship|default:'—' }}</dd>
+        <dt>Phone</dt><dd>{{ patient.nok_phone|default:'—' }}</dd>
+      </dl>
+    </section>
   </div>
-  <div class="card">
-    <h2>Next of Kin</h2>
-    <table>
-      <tr><td class="muted">Name</td><td>{{ patient.nok_name|default:'—' }}</td></tr>
-      <tr><td class="muted">Relationship</td><td>{{ patient.nok_relationship|default:'—' }}</td></tr>
-      <tr><td class="muted">Phone</td><td>{{ patient.nok_phone|default:'—' }}</td></tr>
-    </table>
-  </div>
-</div>
-<div class="card">
-  <h2>Registration</h2>
-  <p class="muted" style="margin:0">Registered {{ patient.registered_at|date:'d M Y H:i' }} by {{ patient.registered_by|default:'—' }}</p>
-  {% if patient.notes %}<p style="margin:.5rem 0 0">{{ patient.notes }}</p>{% endif %}
+
+  <section class="panel" id="encounter-history">
+    <div class="panel-heading">
+      <div><span class="panel-kicker">Clinical record</span><h2>Encounter history</h2></div>
+      {% if perms.encounters.change_encounter or request.user.groups.all %}
+      <a class="btn-secondary btn--sm" href="{% url 'check_in' %}?q={{ patient.mrn }}">New encounter</a>
+      {% endif %}
+    </div>
+    <div class="table-box compact-table" style="margin-top:12px">
+      <table class="table responsive-table">
+        <thead><tr><th>Date</th><th>Visit</th><th>Status</th><th>Doctor</th><th></th></tr></thead>
+        <tbody>
+        {% for encounter in encounters %}
+          <tr>
+            <td data-label="Date">{{ encounter.checked_in_at|date:"d M Y H:i" }}</td>
+            <td data-label="Visit" class="mono">{{ encounter.queue_token }} · {{ encounter.get_encounter_type_display }}</td>
+            <td data-label="Status"><span class="pill pill--issued">{{ encounter.get_status_display }}</span></td>
+            <td data-label="Doctor">{{ encounter.doctor.get_full_name|default:encounter.doctor.username|default:"—" }}</td>
+            <td class="right" data-label="Actions"><a class="text-action" href="{% url 'encounter_detail' encounter.pk %}">Open</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="empty">No encounters recorded for this patient.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <strong class="panel-title">Registration</strong>
+    <p class="help" style="margin-top:8px">Registered {{ patient.registered_at|date:'d M Y H:i' }} by {{ patient.registered_by|default:'—' }}</p>
+    {% if patient.notes %}<p style="margin-top:8px">{{ patient.notes }}</p>{% endif %}
+  </section>
 </div>
 {% endblock %}

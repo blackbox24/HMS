@@ -1,44 +1,90 @@
-{% extends 'base.html' %}
-{% block title %}Patients — HMS{% endblock %}
+{% extends 'base_app.html' %}
+{% block title %}Patients{% endblock %}
 {% block content %}
-<div style="display:flex;justify-content:space-between;align-items:center">
-  <h1>Patients</h1>
-  <a class="btn" href="{% url 'patient_create' %}">+ Register Patient</a>
-</div>
-<div class="searchbar">
-  <form method="get" style="display:flex;gap:.5rem;flex:1">
-    <input type="search" name="q" value="{{ q }}" placeholder="Search MRN, name, phone, NHIS, national ID…">
-    <button class="btn" type="submit">Search</button>
-    {% if q %}<a class="btn secondary" href="{% url 'patient_list' %}">Clear</a>{% endif %}
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Patients</h1>
+      <p class="page-lead">{{ page.paginator.count }} registered.</p>
+    </div>
+    <a class="btn" href="{% url 'patient_create' %}">+ Register patient</a>
+  </div>
+
+  <form method="get" class="search-toolbar patient-search" role="search">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search MRN, name, phone, NHIS, national ID…" class="input" style="flex:1">
+    <span class="table-count">{{ page.paginator.count }} records</span>
+    <button class="btn btn--sm" type="submit">Search</button>
+    {% if q %}<a class="btn-secondary btn--sm" href="{% url 'patient_list' %}">Clear</a>{% endif %}
   </form>
-</div>
-<div class="card">
-  <table>
-    <tr><th>MRN</th><th>Name</th><th>DOB</th><th>Age</th><th>Gender</th><th>Phone</th><th>NHIS</th></tr>
-    {% for p in patients %}
-    <tr>
-      <td><a href="{% url 'patient_detail' p.pk %}">{{ p.mrn }}</a></td>
-      <td>{{ p.full_name }}</td>
-      <td>{{ p.date_of_birth|date:'d M Y' }}</td>
-      <td>{{ p.age }}</td>
-      <td>{{ p.get_gender_display }}</td>
-      <td>{{ p.phone|default:'—' }}</td>
-      <td>{{ p.nhis_number|default:'—' }}</td>
-    </tr>
-    {% empty %}
-    <tr><td colspan="7" class="muted">No patients found.</td></tr>
-    {% endfor %}
-  </table>
-</div>
-{% if page.paginator.num_pages > 1 %}
-<div style="display:flex;gap:.4rem;align-items:center;margin-top:1rem">
-  {% if page.has_previous %}
-    <a class="btn secondary small" href="?q={{ q }}&page={{ page.previous_page_number }}">← Prev</a>
+
+  <div class="table-box">
+    <table class="table responsive-table patient-table" id="patient-directory">
+      <thead>
+        <tr>
+          <th><button type="button" class="table-sort" data-sort="mrn">MRN <span aria-hidden="true">↕</span></button></th>
+          <th><button type="button" class="table-sort" data-sort="name">Full name <span aria-hidden="true">↕</span></button></th>
+          <th>Telephone</th>
+          <th><button type="button" class="table-sort" data-sort="dob">DOB <span aria-hidden="true">↕</span></button></th>
+          <th>Age</th>
+          <th>Gender</th>
+          <th class="right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for p in patients %}
+      <tr data-mrn="{{ p.mrn }}" data-name="{{ p.full_name|lower }}" data-dob="{{ p.date_of_birth|date:'Y-m-d' }}">
+        <td class="mono" data-label="MRN"><a href="{% url 'patient_detail' p.pk %}">{{ p.mrn }}</a></td>
+        <td data-label="Full name"><strong>{{ p.full_name }}</strong>{% if p.nhis_number %}<br><span class="help">NHIS {{ p.nhis_number }}</span>{% endif %}</td>
+        <td data-label="Telephone">{% if p.phone %}<a href="tel:{{ p.phone }}">{{ p.phone }}</a>{% else %}<span class="help">—</span>{% endif %}</td>
+        <td data-label="DOB">{{ p.date_of_birth|date:'d M Y' }}</td>
+        <td data-label="Age">{{ p.age }}</td>
+        <td data-label="Gender">{{ p.get_gender_display }}</td>
+        <td class="right table-actions" data-label="Actions">
+          <a class="btn-secondary btn--sm" href="{% url 'patient_detail' p.pk %}#encounter-history">History</a>
+          <a class="text-action" href="{% url 'patient_detail' p.pk %}">Details</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="empty">No patients found.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page.paginator.num_pages > 1 %}
+  <div style="display:flex;gap:.4rem;align-items:center">
+    {% if page.has_previous %}
+      <a class="btn-secondary btn--sm" href="?q={{ q }}&page={{ page.previous_page_number }}">← Prev</a>
+    {% endif %}
+    <span class="help">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}
+      <a class="btn-secondary btn--sm" href="?q={{ q }}&page={{ page.next_page_number }}">Next →</a>
+    {% endif %}
+  </div>
   {% endif %}
-  <span class="muted">Page {{ page.number }} of {{ page.paginator.num_pages }} ({{ page.paginator.count }} patients)</span>
-  {% if page.has_next %}
-    <a class="btn secondary small" href="?q={{ q }}&page={{ page.next_page_number }}">Next →</a>
-  {% endif %}
 </div>
-{% endif %}
+<script>
+  const patientTable = document.getElementById('patient-directory');
+  if (patientTable) {
+    const sortButtons = patientTable.querySelectorAll('.table-sort');
+    sortButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const key = button.dataset.sort;
+        const tbody = patientTable.tBodies[0];
+        const rows = Array.from(tbody.querySelectorAll('tr[data-' + key + ']'));
+        const ascending = button.dataset.direction !== 'asc';
+
+        rows.sort((a, b) => {
+          const av = key === 'dob' ? a.dataset.dob : (a.dataset[key] || '');
+          const bv = key === 'dob' ? b.dataset.dob : (b.dataset[key] || '');
+          return ascending ? av.localeCompare(bv) : bv.localeCompare(av);
+        });
+        rows.forEach((row) => tbody.appendChild(row));
+
+        sortButtons.forEach((item) => item.removeAttribute('data-direction'));
+        button.dataset.direction = ascending ? 'asc' : 'desc';
+      });
+    });
+  }
+</script>
 {% endblock %}

@@ -28,8 +28,15 @@
     </p>
   </div>
 
+  <nav class="section-tabs" aria-label="Encounter sections" role="tablist">
+    <button class="section-tab" type="button" role="tab" aria-selected="true" aria-controls="tab-overview" data-tab="overview">Overview</button>
+    <button class="section-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-vitals" data-tab="vitals">Vitals</button>
+    <button class="section-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-consultation" data-tab="consultation">Consultation</button>
+    <button class="section-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-notes" data-tab="notes">Notes</button>
+  </nav>
+
   {# ------------------------------ actions by status ------------------------------ #}
-  <div class="panel">
+  <div class="panel tab-panel sticky-actions" id="tab-overview" role="tabpanel" data-tab-panel="overview">
     <strong class="panel-title">Actions</strong>
     <div class="actions" style="margin-top:10px">
       {% if e.status == 'CHECKED_IN' or e.status == 'VITALS' %}
@@ -82,7 +89,7 @@
   </div>
 
   {# --------------------------------- vitals --------------------------------- #}
-  <section class="panel" id="vitals">
+  <section class="panel tab-panel" id="tab-vitals" role="tabpanel" data-tab-panel="vitals" hidden>
     <strong class="panel-title">Vitals</strong>
     {% if e.vitals.all %}
     <div class="table-box" style="margin-top:10px">
@@ -127,8 +134,11 @@
 
   {# ------------------------------ consultation ------------------------------ #}
   {% if e.status == 'WITH_DOCTOR' and can_consult %}
-  <section class="panel">
+  <section class="panel tab-panel" id="tab-consultation" role="tabpanel" data-tab-panel="consultation" hidden>
     <strong class="panel-title">Consultation (SOAP)</strong>
+    {% if not can_consult %}
+    <p class="empty">Consultation controls are available to the assigned doctor.</p>
+    {% else %}
     <form method="post" action="{% url 'consult' e.pk %}" style="margin-top:12px">
       {% csrf_token %}
       <div class="field"><label class="label">Subjective</label><textarea class="input" name="subjective" rows="2"></textarea></div>
@@ -137,18 +147,20 @@
       <div class="field"><label class="label">Plan</label><textarea class="input" name="plan" rows="2"></textarea></div>
       <div class="field">
         <label class="label">Diagnoses (ICD-10)</label>
-        <select class="input" name="icd10" multiple size="6">
+        <input class="input" type="search" id="icd-search" placeholder="Search diagnosis code or name…" autocomplete="off">
+        <select class="input" name="icd10" multiple size="8" id="icd-select" aria-describedby="icd-help">
           {% for c in icd10 %}<option value="{{ c.pk }}">{{ c.code }} — {{ c.description }}</option>{% endfor %}
         </select>
-        <span class="help">Ctrl+click to select multiple.</span>
+        <span class="help" id="icd-help">Use Ctrl/Cmd to select multiple diagnoses.</span>
       </div>
       <button class="btn btn--sm" type="submit">Save consultation</button>
     </form>
+    {% endif %}
   </section>
   {% endif %}
 
   {# --------------------------------- notes --------------------------------- #}
-  <section class="panel">
+  <section class="panel tab-panel" id="tab-notes" role="tabpanel" data-tab-panel="notes" hidden>
     <strong class="panel-title">Clinical notes</strong>
     {% for n in e.notes.all %}
     <div class="panel" style="margin-top:10px">
@@ -171,4 +183,29 @@
   </section>
 </div>
 {% endwith %}
+<script>
+  const encounterTabs = document.querySelectorAll('[data-tab]');
+  const encounterPanels = document.querySelectorAll('[data-tab-panel]');
+
+  encounterTabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      encounterTabs.forEach((item) => item.setAttribute('aria-selected', String(item === tab)));
+      encounterPanels.forEach((panel) => {
+        panel.hidden = panel.dataset.tabPanel !== tab.dataset.tab;
+      });
+      tab.focus();
+    });
+  });
+
+  const icdSearch = document.getElementById('icd-search');
+  const icdSelect = document.getElementById('icd-select');
+  if (icdSearch && icdSelect) {
+    icdSearch.addEventListener('input', () => {
+      const query = icdSearch.value.toLowerCase().trim();
+      Array.from(icdSelect.options).forEach((option) => {
+        option.hidden = Boolean(query) && !option.text.toLowerCase().includes(query);
+      });
+    });
+  }
+</script>
 {% endblock %}

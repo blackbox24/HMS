@@ -38,6 +38,7 @@ def patient_list(request):
         request,
         "patients/list.html",
         {
+            "active_nav": "patients",
             "page": page,
             "patients": page.object_list,
             "q": q,
@@ -49,6 +50,7 @@ def patient_list(request):
 @require_http_methods(["GET", "POST"])
 def patient_create(request):
     if request.method == "POST":
+        form_data = request.POST.dict()
         patient = Patient(
             first_name=request.POST.get("first_name", "").strip(),
             middle_name=request.POST.get("middle_name", "").strip(),
@@ -73,8 +75,28 @@ def patient_create(request):
             patient.first_name and patient.last_name and patient.date_of_birth and patient.gender
         ):
             messages.error(request, "First name, last name, DOB and gender are required.")
-            return redirect("patient_create")
-        patient.save()
+            return render(
+                request,
+                "patients/form.html",
+                {
+                    "active_nav": "patients",
+                    "patient_blood_groups": Patient.BloodGroup.choices,
+                    "form_data": form_data,
+                },
+            )
+        try:
+            patient.save()
+        except (TypeError, ValueError):
+            messages.error(request, "Enter a valid date of birth and patient details.")
+            return render(
+                request,
+                "patients/form.html",
+                {
+                    "active_nav": "patients",
+                    "patient_blood_groups": Patient.BloodGroup.choices,
+                    "form_data": form_data,
+                },
+            )
         audit(request, "CREATE", patient)
         logger.info("Patient registered: %s by %s", patient.mrn, request.user)
         messages.success(request, f"Patient registered: {patient.mrn}")
@@ -84,6 +106,7 @@ def patient_create(request):
         request,
         "patients/form.html",
         {
+            "active_nav": "patients",
             "patient_blood_groups": Patient.BloodGroup.choices,
         },
     )
@@ -95,4 +118,9 @@ def patient_detail(request, pk):
     if patient is None:
         raise Http404("Patient not found")
     audit(request, "VIEW", patient)
-    return render(request, "patients/detail.html", {"patient": patient})
+    encounters = patient.encounters.select_related("doctor").prefetch_related(
+        "notes"
+    ).order_by("-checked_in_at")[:20]
+    return render(request, "patients/detail.html",
+                  {"active_nav": "patients", "patient": patient,
+                   "encounters": encounters})

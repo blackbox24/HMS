@@ -2,7 +2,7 @@
 {% block title %}OPD Board{% endblock %}
 {% block content %}
 <div class="page">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+  <div class="page-header">
     <div>
       <h1 class="page-title">OPD board</h1>
       <p class="page-lead">Today's outpatient queue — {{ groups.queue|length }} waiting, {{ groups.with_doctor|length }} with doctors.</p>
