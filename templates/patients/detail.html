@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}{{ patient.full_name }} — HMS{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center">
+  <h1>{{ patient.full_name }}</h1>
+  <span class="badge" style="font-size:1rem;padding:.4rem .9rem">{{ patient.mrn }}</span>
+</div>
+<div class="grid cols-3">
+  <div class="card">
+    <h2>Demographics</h2>
+    <table>
+      <tr><td class="muted">DOB</td><td>{{ patient.date_of_birth|date:'d M Y' }} ({{ patient.age }}y)</td></tr>
+      <tr><td class="muted">Gender</td><td>{{ patient.get_gender_display }}</td></tr>
+      <tr><td class="muted">Blood</td><td>{{ patient.get_blood_group_display }}</td></tr>
+      <tr><td class="muted">NHIS</td><td>{{ patient.nhis_number|default:'—' }}</td></tr>
+      <tr><td class="muted">National ID</td><td>{{ patient.national_id|default:'—' }}</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h2>Contact</h2>
+    <table>
+      <tr><td class="muted">Phone</td><td>{{ patient.phone|default:'—' }}</td></tr>
+      <tr><td class="muted">Alt phone</td><td>{{ patient.alt_phone|default:'—' }}</td></tr>
+      <tr><td class="muted">Email</td><td>{{ patient.email|default:'—' }}</td></tr>
+      <tr><td class="muted">Address</td><td>{{ patient.address|default:'—' }}</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h2>Next of Kin</h2>
+    <table>
+      <tr><td class="muted">Name</td><td>{{ patient.nok_name|default:'—' }}</td></tr>
+      <tr><td class="muted">Relationship</td><td>{{ patient.nok_relationship|default:'—' }}</td></tr>
+      <tr><td class="muted">Phone</td><td>{{ patient.nok_phone|default:'—' }}</td></tr>
+    </table>
+  </div>
+</div>
+<div class="card">
+  <h2>Registration</h2>
+  <p class="muted" style="margin:0">Registered {{ patient.registered_at|date:'d M Y H:i' }} by {{ patient.registered_by|default:'—' }}</p>
+  {% if patient.notes %}<p style="margin:.5rem 0 0">{{ patient.notes }}</p>{% endif %}
+</div>
+{% endblock %}

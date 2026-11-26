@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Patients — HMS{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center">
+  <h1>Patients</h1>
+  <a class="btn" href="{% url 'patient_create' %}">+ Register Patient</a>
+</div>
+<div class="searchbar">
+  <form method="get" style="display:flex;gap:.5rem;flex:1">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search MRN, name, phone, NHIS, national ID…">
+    <button class="btn" type="submit">Search</button>
+    {% if q %}<a class="btn secondary" href="{% url 'patient_list' %}">Clear</a>{% endif %}
+  </form>
+</div>
+<div class="card">
+  <table>
+    <tr><th>MRN</th><th>Name</th><th>DOB</th><th>Age</th><th>Gender</th><th>Phone</th><th>NHIS</th></tr>
+    {% for p in patients %}
+    <tr>
+      <td><a href="{% url 'patient_detail' p.pk %}">{{ p.mrn }}</a></td>
+      <td>{{ p.full_name }}</td>
+      <td>{{ p.date_of_birth|date:'d M Y' }}</td>
+      <td>{{ p.age }}</td>
+      <td>{{ p.get_gender_display }}</td>
+      <td>{{ p.phone|default:'—' }}</td>
+      <td>{{ p.nhis_number|default:'—' }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7" class="muted">No patients found.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}
