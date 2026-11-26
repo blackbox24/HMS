@@ -29,12 +29,22 @@ ROLE_DEFS = {
             ('patients', 'patient', 'add_patient'),
             ('patients', 'patient', 'view_patient'),
             ('patients', 'patient', 'change_patient'),
+            ('encounters', 'encounter', 'add_encounter'),
+            ('encounters', 'encounter', 'view_encounter'),
+            ('encounters', 'encounter', 'change_encounter'),
+            ('encounters', 'clinicalnote', 'view_clinicalnote'),
         ],
     },
     'Nurse': {
         'staff': False,
         'perms': [
             ('patients', 'patient', 'view_patient'),
+            ('encounters', 'encounter', 'view_encounter'),
+            ('encounters', 'encounter', 'change_encounter'),
+            ('encounters', 'vitals', 'add_vitals'),
+            ('encounters', 'vitals', 'view_vitals'),
+            ('encounters', 'clinicalnote', 'add_clinicalnote'),
+            ('encounters', 'clinicalnote', 'view_clinicalnote'),
         ],
     },
     'Doctor': {
@@ -42,6 +52,12 @@ ROLE_DEFS = {
         'perms': [
             ('patients', 'patient', 'view_patient'),
             ('patients', 'patient', 'change_patient'),
+            ('encounters', 'encounter', 'view_encounter'),
+            ('encounters', 'encounter', 'change_encounter'),
+            ('encounters', 'vitals', 'view_vitals'),
+            ('encounters', 'clinicalnote', 'add_clinicalnote'),
+            ('encounters', 'clinicalnote', 'view_clinicalnote'),
+            ('encounters', 'icd10code', 'view_icd10code'),
         ],
     },
     'Lab Technician': {

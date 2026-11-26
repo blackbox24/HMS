@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "core",
     "accounts",
     "patients",
+    "encounters",
 ]
 
 MIDDLEWARE = [
@@ -264,6 +265,11 @@ LOGGING = {
             "propagate": False,
         },
         "accounts": {
+            "handlers": ["app_file", "console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "encounters": {
             "handlers": ["app_file", "console"],
             "level": "DEBUG",
             "propagate": False,

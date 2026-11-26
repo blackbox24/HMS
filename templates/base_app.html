@@ -18,7 +18,7 @@
     <nav class="mainnav" aria-label="Main">
       {% comment %} Set `active_nav` in each view's context. Show only modules the user's role can access. {% endcomment %}
       <a href="{% url 'patient_list' %}" {% if active_nav == "patients" %}aria-current="page"{% endif %}>Patients</a>
-      <a href="#" {% if active_nav == "opd" %}aria-current="page"{% endif %}>OPD</a>
+      <a href="{% url 'opd_board' %}" {% if active_nav == "opd" %}aria-current="page"{% endif %}>OPD</a>
       <a href="#" {% if active_nav == "inpatient" %}aria-current="page"{% endif %}>Inpatient</a>
       <a href="#" {% if active_nav == "lab" %}aria-current="page"{% endif %}>Lab</a>
       <a href="#" {% if active_nav == "pharmacy" %}aria-current="page"{% endif %}>Pharmacy</a>

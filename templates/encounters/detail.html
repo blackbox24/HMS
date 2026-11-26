@@ -1,0 +1,168 @@
+{% extends 'base_app.html' %}
+{% block title %}{{ encounter.queue_token }} — {{ encounter.patient.full_name }}{% endblock %}
+{% block content %}
+{% with p=encounter.patient e=encounter %}
+<div class="page">
+  <div>
+    <a class="back-link" href="{% url 'opd_board' %}">← OPD board</a>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:8px">
+      <h1 class="page-title" style="margin:0">{{ e.queue_token }} · {{ p.full_name }}</h1>
+      <span class="pill {% if e.status == 'DISCHARGED' or e.status == 'CANCELLED' %}pill--issued{% else %}pill--pending{% endif %}">{{ e.get_status_display }}</span>
+      {% if e.is_24h_overdue %}<span class="pill pill--pending">24h elapsed</span>{% endif %}
+    </div>
+    <p class="page-lead">
+      MRN <a href="{% url 'patient_detail' p.pk %}">{{ p.mrn }}</a> · {{ p.age }}y {{ p.get_gender_display }}
+      {% if p.phone %}· {{ p.phone }}{% endif %} · {{ e.get_encounter_type_display }}
+      {% if e.service %}· {{ e.service }}{% endif %} · {{ e.get_priority_display }} priority
+      {% if e.doctor %}· Dr. {{ e.doctor.get_full_name|default:e.doctor.username }}{% endif %}
+    </p>
+    {% if e.chief_complaint %}<p><strong>Complaint:</strong> {{ e.chief_complaint }}</p>{% endif %}
+    <p class="help">
+      Checked in {{ e.checked_in_at|date:"H:i" }}
+      {% if e.vitals_at %}· vitals {{ e.vitals_at|time:"H:i" }}{% endif %}
+      {% if e.assigned_at %}· assigned {{ e.assigned_at|time:"H:i" }}{% endif %}
+      {% if e.diagnosis_at %}· diagnosis {{ e.diagnosis_at|date:"d M H:i" }}
+        {% if e.hours_since_diagnosis is not None %}({{ e.hours_since_diagnosis|floatformat:1 }}h ago){% endif %}
+      {% endif %}
+      {% if e.discharged_at %}· discharged {{ e.discharged_at|date:"d M H:i" }}{% endif %}
+    </p>
+  </div>
+
+  {# ------------------------------ actions by status ------------------------------ #}
+  <div class="panel">
+    <strong class="panel-title">Actions</strong>
+    <div class="actions" style="margin-top:10px">
+      {% if e.status == 'CHECKED_IN' or e.status == 'VITALS' %}
+        <a class="btn btn--sm" href="#vitals">Record vitals</a>
+        <form method="post" action="{% url 'queue_action' e.pk %}" style="display:inline">{% csrf_token %}
+          <input type="hidden" name="action" value="queue"><button class="btn-secondary btn--sm" type="submit">Send to queue</button>
+        </form>
+      {% endif %}
+
+      {% if e.status == 'VITALS' or e.status == 'QUEUED' or e.status == 'CHECKED_IN' %}
+      <form method="post" action="{% url 'queue_action' e.pk %}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        {% csrf_token %}<input type="hidden" name="action" value="assign">
+        <select name="doctor" class="input" style="width:auto;height:36px" required>
+          <option value="">Assign doctor…</option>
+          {% for d in doctors %}<option value="{{ d.pk }}">{{ d.get_full_name|default:d.username }}</option>{% endfor %}
+        </select>
+        <button class="btn-secondary btn--sm" type="submit">Assign &amp; call</button>
+      </form>
+      {% endif %}
+
+      {% if e.status == 'CONSULTED' or e.status == 'DETAINED' %}
+      <form method="post" action="{% url 'dispose' e.pk %}" style="display:flex;gap:8px;flex-wrap:wrap">
+        {% csrf_token %}
+        <button class="btn btn--sm" name="disposition" value="DISCHARGED" type="submit">Discharge</button>
+        <button class="btn-secondary btn--sm" name="disposition" value="DETAINED" type="submit">Detain (observation)</button>
+        <button class="btn-secondary btn--sm" name="disposition" value="ADMITTED" type="submit">Admit</button>
+      </form>
+      {% endif %}
+      {% if e.status == 'ADMITTED' %}
+      <form method="post" action="{% url 'dispose' e.pk %}">{% csrf_token %}
+        <button class="btn btn--sm" name="disposition" value="DISCHARGED" type="submit">Discharge patient</button>
+      </form>
+      {% endif %}
+      {% if e.status == 'WITH_DOCTOR' and not can_consult %}
+        <span class="help">Consultation in progress.</span>
+      {% endif %}
+      {% if e.is_open %}
+      <form method="post" action="{% url 'queue_action' e.pk %}" style="display:inline" onsubmit="return confirm('Cancel this encounter?')">{% csrf_token %}
+        <input type="hidden" name="action" value="cancel">
+        <button class="btn-link btn--sm" type="submit">Cancel visit</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {# --------------------------------- vitals --------------------------------- #}
+  <section class="panel" id="vitals">
+    <strong class="panel-title">Vitals</strong>
+    {% if e.vitals.all %}
+    <div class="table-box" style="margin-top:10px">
+      <table class="table">
+        <tr><th>Time</th><th>BP</th><th>Temp</th><th>Pulse</th><th>SpO₂</th><th>RR</th><th>Wt</th><th>Ht</th><th>BMI</th><th>By</th></tr>
+        {% for v in e.vitals.all %}
+        <tr {% if v.has_abnormal %}class="is-highlight"{% endif %}>
+          <td class="mono">{{ v.recorded_at|time:"H:i" }}</td>
+          <td>{{ v.bp_systolic|default:'—' }}/{{ v.bp_diastolic|default:'—' }}</td>
+          <td>{{ v.temperature|default:'—' }}</td>
+          <td>{{ v.pulse|default:'—' }}</td>
+          <td>{{ v.spo2|default:'—' }}</td>
+          <td>{{ v.respiratory_rate|default:'—' }}</td>
+          <td>{{ v.weight_kg|default:'—' }}</td>
+          <td>{{ v.height_cm|default:'—' }}</td>
+          <td>{{ v.bmi|default:'—' }}</td>
+          <td>{{ v.recorded_by.get_full_name|default:v.recorded_by.username|default:'—' }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% if e.vitals.first.has_abnormal %}<p class="text-danger" style="margin-top:8px">Latest vitals contain abnormal values.</p>{% endif %}
+    {% else %}<p class="empty">No vitals recorded yet.</p>{% endif %}
+
+    {% if e.status == 'CHECKED_IN' or e.status == 'VITALS' %}
+    <form method="post" action="{% url 'record_vitals' e.pk %}" style="margin-top:14px">
+      {% csrf_token %}
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">
+        <div class="field"><label class="label">BP sys</label><input class="input" name="bp_systolic" type="number" min="40" max="300"></div>
+        <div class="field"><label class="label">BP dia</label><input class="input" name="bp_diastolic" type="number" min="20" max="200"></div>
+        <div class="field"><label class="label">Temp °C</label><input class="input" name="temperature" type="number" step="0.1" min="30" max="45"></div>
+        <div class="field"><label class="label">Pulse</label><input class="input" name="pulse" type="number" min="20" max="250"></div>
+        <div class="field"><label class="label">SpO₂ %</label><input class="input" name="spo2" type="number" min="50" max="100"></div>
+        <div class="field"><label class="label">RR /min</label><input class="input" name="respiratory_rate" type="number" min="5" max="60"></div>
+        <div class="field"><label class="label">Weight kg</label><input class="input" name="weight_kg" type="number" step="0.1" min="1" max="500"></div>
+        <div class="field"><label class="label">Height cm</label><input class="input" name="height_cm" type="number" step="0.1" min="20" max="260"></div>
+      </div>
+      <button class="btn btn--sm" type="submit" style="margin-top:12px">Save vitals</button>
+    </form>
+    {% endif %}
+  </section>
+
+  {# ------------------------------ consultation ------------------------------ #}
+  {% if e.status == 'WITH_DOCTOR' and can_consult %}
+  <section class="panel">
+    <strong class="panel-title">Consultation (SOAP)</strong>
+    <form method="post" action="{% url 'consult' e.pk %}" style="margin-top:12px">
+      {% csrf_token %}
+      <div class="field"><label class="label">Subjective</label><textarea class="input" name="subjective" rows="2"></textarea></div>
+      <div class="field"><label class="label">Objective</label><textarea class="input" name="objective" rows="2"></textarea></div>
+      <div class="field"><label class="label">Assessment</label><textarea class="input" name="assessment" rows="2"></textarea></div>
+      <div class="field"><label class="label">Plan</label><textarea class="input" name="plan" rows="2"></textarea></div>
+      <div class="field">
+        <label class="label">Diagnoses (ICD-10)</label>
+        <select class="input" name="icd10" multiple size="6">
+          {% for c in icd10 %}<option value="{{ c.pk }}">{{ c.code }} — {{ c.description }}</option>{% endfor %}
+        </select>
+        <span class="help">Ctrl+click to select multiple.</span>
+      </div>
+      <button class="btn btn--sm" type="submit">Save consultation</button>
+    </form>
+  </section>
+  {% endif %}
+
+  {# --------------------------------- notes --------------------------------- #}
+  <section class="panel">
+    <strong class="panel-title">Clinical notes</strong>
+    {% for n in e.notes.all %}
+    <div class="panel" style="margin-top:10px">
+      <div class="help">{{ n.get_note_type_display }} · {{ n.author.get_full_name|default:n.author.username|default:'system' }} · {{ n.created_at|date:"d M Y H:i" }}</div>
+      {% if n.subjective %}<p><strong>S:</strong> {{ n.subjective }}</p>{% endif %}
+      {% if n.objective %}<p><strong>O:</strong> {{ n.objective }}</p>{% endif %}
+      {% if n.assessment %}<p><strong>A:</strong> {{ n.assessment }}</p>{% endif %}
+      {% if n.plan %}<p><strong>P:</strong> {{ n.plan }}</p>{% endif %}
+      {% if n.diagnoses.all %}<p class="help">Dx: {% for d in n.diagnoses.all %}{{ d.code }} {% endfor %}</p>{% endif %}
+    </div>
+    {% empty %}<p class="empty">No notes yet.</p>{% endfor %}
+
+    {% if e.is_open and can_nurse %}
+    <form method="post" action="{% url 'add_note' e.pk %}" style="margin-top:12px">
+      {% csrf_token %}
+      <div class="field"><textarea class="input" name="note" rows="2" placeholder="Nursing note…" required></textarea></div>
+      <button class="btn-secondary btn--sm" type="submit">Add note</button>
+    </form>
+    {% endif %}
+  </section>
+</div>
+{% endwith %}
+{% endblock %}

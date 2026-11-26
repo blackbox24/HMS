@@ -204,3 +204,16 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid #C5CFCB; bord
   .topbar, .tabs, .page-lead, .locked-section, .no-print { display: none !important; }
   .reveal { border: 2px solid #000; }
 }
+
+/* OPD queue board */
+.queue-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; align-items: start; }
+.queue-col { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.queue-col .section-title { font-size: 15px; margin: 0 0 4px; }
+.queue-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border-soft); border-radius: var(--radius); text-decoration: none; color: inherit; }
+.queue-row:hover { border-color: var(--brand-700); background: var(--brand-050); }
+.queue-row--overdue { border-color: var(--warn-border, #E8C468); background: var(--warn-bg); }
+.queue-token { font-weight: 700; min-width: 44px; }
+.queue-who { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.queue-who small { color: var(--muted); font-size: 12px; }
+.queue-time { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.searchbar input[type="search"] { height: var(--control-h); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 0 14px; font: inherit; }

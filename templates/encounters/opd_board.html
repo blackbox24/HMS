@@ -1,0 +1,73 @@
+{% extends 'base_app.html' %}
+{% block title %}OPD Board{% endblock %}
+{% block content %}
+<div class="page">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+    <div>
+      <h1 class="page-title">OPD board</h1>
+      <p class="page-lead">Today's outpatient queue — {{ groups.queue|length }} waiting, {{ groups.with_doctor|length }} with doctors.</p>
+    </div>
+    <div style="display:flex;gap:10px">
+      {% if overdue_count %}<span class="pill pill--pending">{{ overdue_count }} overdue 24h</span>{% endif %}
+      <a class="btn" href="{% url 'check_in' %}">+ Check in patient</a>
+    </div>
+  </div>
+
+  <div class="queue-grid">
+    <section class="queue-col">
+      <h2 class="section-title">Waiting <span class="muted">({{ groups.queue|length }})</span></h2>
+      {% for e in groups.queue %}
+      <a class="queue-row {% if e.is_24h_overdue %}queue-row--overdue{% endif %}" href="{% url 'encounter_detail' e.pk %}">
+        <span class="queue-token mono">{{ e.queue_token }}</span>
+        <span class="queue-who"><strong>{{ e.patient.full_name }}</strong><small>{{ e.service|default:'General' }} · {{ e.get_priority_display }}</small></span>
+        <span class="queue-time">{{ e.checked_in_at|time:"H:i" }}</span>
+      </a>
+      {% empty %}<p class="empty">No one waiting.</p>{% endfor %}
+    </section>
+
+    <section class="queue-col">
+      <h2 class="section-title">With doctor <span class="muted">({{ groups.with_doctor|length }})</span></h2>
+      {% for e in groups.with_doctor %}
+      <a class="queue-row" href="{% url 'encounter_detail' e.pk %}">
+        <span class="queue-token mono">{{ e.queue_token }}</span>
+        <span class="queue-who"><strong>{{ e.patient.full_name }}</strong><small>Dr. {{ e.doctor.get_full_name|default:e.doctor.username }}</small></span>
+        <span class="queue-time">{{ e.assigned_at|time:"H:i" }}</span>
+      </a>
+      {% empty %}<p class="empty">No consultations in progress.</p>{% endfor %}
+    </section>
+
+    <section class="queue-col">
+      <h2 class="section-title">Consulted / awaiting disposition <span class="muted">({{ groups.consulted|length }})</span></h2>
+      {% for e in groups.consulted %}
+      <a class="queue-row {% if e.is_24h_overdue %}queue-row--overdue{% endif %}" href="{% url 'encounter_detail' e.pk %}">
+        <span class="queue-token mono">{{ e.queue_token }}</span>
+        <span class="queue-who"><strong>{{ e.patient.full_name }}</strong><small>{% if e.is_24h_overdue %}Over 24h — discharge or admit{% else %}Dx {{ e.diagnosis_at|time:"H:i" }}{% endif %}</small></span>
+        <span class="queue-time">{{ e.diagnosis_at|time:"H:i" }}</span>
+      </a>
+      {% empty %}<p class="empty">None.</p>{% endfor %}
+    </section>
+
+    <section class="queue-col">
+      <h2 class="section-title">Detained <span class="muted">({{ groups.detained|length }})</span></h2>
+      {% for e in groups.detained %}
+      <a class="queue-row {% if e.is_24h_overdue %}queue-row--overdue{% endif %}" href="{% url 'encounter_detail' e.pk %}">
+        <span class="queue-token mono">{{ e.queue_token }}</span>
+        <span class="queue-who"><strong>{{ e.patient.full_name }}</strong><small>Observation — 24h max</small></span>
+        <span class="queue-time">{{ e.diagnosis_at|time:"H:i" }}</span>
+      </a>
+      {% empty %}<p class="empty">None.</p>{% endfor %}
+    </section>
+
+    <section class="queue-col">
+      <h2 class="section-title">Admitted <span class="muted">({{ groups.admitted|length }})</span></h2>
+      {% for e in groups.admitted %}
+      <a class="queue-row" href="{% url 'encounter_detail' e.pk %}">
+        <span class="queue-token mono">{{ e.queue_token }}</span>
+        <span class="queue-who"><strong>{{ e.patient.full_name }}</strong><small>Ward assignment pending</small></span>
+        <span class="queue-time">{{ e.assigned_at|time:"H:i" }}</span>
+      </a>
+      {% empty %}<p class="empty">None.</p>{% endfor %}
+    </section>
+  </div>
+</div>
+{% endblock %}
